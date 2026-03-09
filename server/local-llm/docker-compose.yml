@@ -1,0 +1,12 @@
+services:
+  atlas-llm:
+    build: .
+    container_name: atlas-llm-service
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    restart: always
+    volumes:
+      # Optionnel : permet de voir les modifs de code en live sans rebuild (dev mode)
+      - ./app:/app/app
