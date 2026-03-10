@@ -1,83 +1,83 @@
-# 🤖 Atlas Backend - Brique LLM (Infomaniak AI)
+# 🤖 Atlas Backend - LLM Module (Infomaniak AI)
 
-Ce service est la brique d'intelligence artificielle du projet Atlas. Il permet d'interroger des modèles de langage (LLM) hébergés en Suisse via l'infrastructure **Infomaniak AI** (OpenAI-compatible).
+This service is the artificial intelligence component of the Atlas project. It enables interaction with Large Language Models (LLMs) hosted in Switzerland via the **Infomaniak AI** infrastructure (OpenAI-compatible).
 
-## 🚀 Installation & Lancement Rapide (Docker)
+## 🚀 Quick Start (Docker)
 
-La méthode recommandée pour lancer le service est d'utiliser **Docker Compose**. Cela garantit que toutes les dépendances sont correctement isolées et configurées.
+The recommended method to run the service is using **Docker Compose**. This ensures all dependencies are correctly isolated and configured.
 
-### 1. Configuration des secrets
-Créez un fichier `.env` à la racine du projet et remplissez-le avec vos identifiants Infomaniak :
+### 1. Configure Secrets
+Create a `.env` file at the project root and fill it with your Infomaniak credentials:
 
 ```bash
 # .env
-INFOMANIAK_API_KEY=votre_cle_api_ici
-INFOMANIAK_PRODUCT_ID=votre_product_id_ici
-INFOMANIAK_MODEL=llama3  # Modèles : mixtral, llama3, mistral3, etc.
+INFOMANIAK_API_KEY=your_api_key_here
+INFOMANIAK_PRODUCT_ID=your_product_id_here
+INFOMANIAK_MODEL=llama3  # Available models: mixtral, llama3, mistral3, etc.
 ```
 
-### 2. Démarrer le service
-Lancez le conteneur (le flag `--build` assure la mise à jour des dépendances) :
+### 2. Start the Service
+Launch the container (the `--build` flag ensures dependencies are up to date):
 
 ```bash
 docker-compose up --build
 ```
 
-Le service sera disponible sur **[http://localhost:8000](http://localhost:8000)**.
+The service will be available at **[http://localhost:8000](http://localhost:8000)**.
 
 ---
 
-## 🧪 Tester l'API
+## 🧪 Testing the API
 
-Une fois le serveur lancé (via Docker ou Local), vous pouvez tester la brique LLM de deux manières :
+Once the server is running (via Docker or Local), you can test the LLM module in two ways:
 
-### A. Via le Terminal (cURL)
-Ouvrez un **nouveau terminal** et exécutez la commande suivante :
+### A. Via Terminal (cURL)
+Open a **new terminal** and run the following command:
 
 ```bash
 curl -X POST "http://localhost:8000/api/generate" \
      -H "Content-Type: application/json" \
-     -d '{"prompt": "Salut Atlas, présente-toi en 5 mots."}'
+     -d '{"prompt": "Hello Atlas, introduce yourself in 5 words."}'
 ```
 
-### B. Via l'Interface Interactive (Swagger)
-FastAPI génère automatiquement une interface de test visuelle :
-👉 Accédez à : [http://localhost:8000/docs](http://localhost:8000/docs)
-1. Cliquez sur `POST /api/generate`
-2. Cliquez sur **"Try it out"**
-3. Modifiez le JSON de test et cliquez sur **"Execute"**
+### B. Via Interactive Interface (Swagger)
+FastAPI automatically generates a visual testing interface:
+👉 Access at: [http://localhost:8000/docs](http://localhost:8000/docs)
+1. Click on `POST /api/generate`
+2. Click on **"Try it out"**
+3. Modify the test JSON and click **"Execute"**
 
 ---
 
-## 🛠️ Développement Local (Sans Docker)
+## 🛠️ Local Development (Without Docker)
 
-Si vous préférez travailler sans Docker :
+If you prefer working without Docker:
 
-1. **Préparer l'environnement** :
+1. **Prepare the environment**:
    ```bash
    python3 -m venv venv
    source venv/bin/activate  # Windows: .\venv\Scripts\Activate.ps1
    pip install -r requirements.txt
    ```
 
-2. **Lancer le serveur** :
+2. **Start the server**:
    ```bash
    uvicorn app.main:app --reload
    ```
 
 ---
 
-## 📂 Structure du Projet (Clean Architecture)
+## 📂 Project Structure (Clean Architecture)
 
-- `app/main.py` : Initialisation de FastAPI et montage des routes.
-- `app/api/llm.py` : Points d'entrée (Endpoints) de l'API.
-- `app/services/llm_service.py` : Logique d'appel API Infomaniak (Asynchrone).
-- `app/schemas/llm.py` : Validation Pydantic (Request/Response).
-- `app/core/config.py` : Gestion centralisée du fichier `.env`.
+- `app/main.py`: FastAPI initialization and route mounting.
+- `app/api/llm.py`: API Entry points (Endpoints).
+- `app/services/llm_service.py`: Infomaniak API calling logic (Asynchronous).
+- `app/schemas/llm.py`: Pydantic Validation (Request/Response).
+- `app/core/config.py`: Centralized management of the `.env` file.
 
 ---
 
-## 📝 Notes Techniques
-- **Souveraineté** : Infrastructure 100% suisse, conforme aux exigences de protection des données.
-- **Async** : Utilisation de `httpx` pour ne pas bloquer les requêtes entrantes pendant l'inférence LLM.
-- **Live-Reload** : En mode Docker, le dossier `./app` est monté en volume, permettant de modifier le code sans reconstruire l'image.
+## 📝 Technical Notes
+- **Data Sovereignty**: 100% Swiss infrastructure, compliant with data protection requirements.
+- **Async**: Uses `httpx` to avoid blocking incoming requests during LLM inference.
+- **Live-Reload**: In Docker mode, the `./app` folder is mounted as a volume, allowing code modifications without rebuilding the image.
