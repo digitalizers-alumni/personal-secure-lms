@@ -1,6 +1,8 @@
 services:
   atlas-llm:
-    build: .
+    build:
+      context: ..
+      dockerfile: local-llm/Dockerfile
     container_name: atlas-llm-service
     ports:
       - "8000:8000"
@@ -8,5 +10,5 @@ services:
       - .env
     restart: always
     volumes:
-      # Optionnel : permet de voir les modifs de code en live sans rebuild (dev mode)
+      # Permet le live-reload depuis votre dossier local-llm/app
       - ./app:/app/app

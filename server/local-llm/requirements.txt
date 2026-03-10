@@ -1,6 +1,0 @@
-fastapi
-uvicorn[standard]
-python-dotenv
-pydantic>=2.7.4
-pydantic-settings
-httpx
