@@ -1,0 +1,131 @@
+# .gitignore
+
+# Node.js
+node_modules/
+npm-debug.log
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Editor files
+*.swp
+.vscode/
+.idea/
+
+# LLM models & large binaries
+models/
+*.bin
+*.onnx
+*.gguf
+*.pt
+*.safetensors
+
+# Environment & secrets
+.env
+.env.*
+venv/
+.venv/
+*.pem
+*.key
+*.crt
+secrets/
+secret.json
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.svg
+*.webp
+*.ico
+*.tiff
+
+# Documents
+*.pdf
+*.doc
+*.docx
+*.odt
+*.rtf
+
+# Spreadsheets & presentations
+*.xls
+*.xlsx
+*.csv
+*.ppt
+*.pptx
+*.ods
+
+# Archives
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.tgz
+*.bz2
+
+# Video
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
+# Audio
+*.mp3
+*.wav
+*.flac
+*.ogg
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+
+# AI Tools (Cursor, Claude, Antigravity, etc.)
+
+# Cursor
+.cursor/
+.cursorignore
+
+# Claude AI / Claude Desktop / Claude Workspace
+.claude/
+claude/
+claude.config.*
+claude.json
+
+# Antigravity / Devin-like tools
+.antigravity/
+.antigravity.json
+antigravity.json
+
+# ChatGPT extensions
+.chatgpt/
+gpt-config.json
+
+# Continue.dev
+.continue/
+
+# GitHub Copilot
+.copilot/
+copilot_settings.json
+
+# Codeium
+.codeium/
+
+# Aider
+.aider*
+.aider.json
+
+# VSCode extensions
+.vscode/
