@@ -108,3 +108,18 @@ secret.json
 # Node.js
 node_modules/
 npm-debug.log
+
+# Python specific (LLM Module)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+env/
+models/
+*.bin
+*.onnx
+*.gguf
+*.pt
+*.safetensors
