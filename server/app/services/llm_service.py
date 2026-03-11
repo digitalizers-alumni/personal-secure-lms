@@ -28,15 +28,31 @@ class LLMService:
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.post(self.base_url, headers=self.headers, json=data)
-                
-                if response.status_code != 200:
-                    return f"API error : ({response.status_code}): {response.text}"
+                response.raise_for_status()
                 
                 result = response.json()
                 return result['choices'][0]['message']['content'].strip()
                 
-            except httpx.HTTPError as e:
-                return f"Communication error with the LLM: {str(e)}"
+            except httpx.HTTPStatusError as e:
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"LLM API error ({e.response.status_code}): {e.response.text}"
+                )
+            except httpx.TimeoutException:
+                raise HTTPException(
+                    status_code=504,
+                    detail="LLM API timeout"
+                )
+            except httpx.RequestError as e:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"LLM unreachable: {str(e)}"
+                )
+            except (KeyError, IndexError):
+                raise HTTPException(
+                    status_code=502,
+                    detail="Unexpected LLM response format"
+                )
 
-# On instancie un singleton pour le service
+# SIngleton instanciation for service
 llm_service = LLMService()

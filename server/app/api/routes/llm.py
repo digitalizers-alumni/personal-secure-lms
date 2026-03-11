@@ -10,8 +10,4 @@ async def generate_text(request: LLMRequest):
     Entry point to generate an LLM prompt
     """
     response_text = await llm_service.generate_response(request.prompt)
-    
-    if response_text.startswith("Erreur"):
-        raise HTTPException(status_code=500, detail=response_text)
-        
     return LLMResponse(generated_text=response_text)
