@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.schemas.llm import LLMRequest, LLMResponse
+from app.api.schemas.llm import LLMRequest, LLMResponse
 from app.services.llm_service import llm_service
 
 router = APIRouter()

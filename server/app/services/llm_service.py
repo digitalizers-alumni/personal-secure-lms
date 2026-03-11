@@ -1,5 +1,5 @@
 import httpx
-from app.core.config import settings
+from app.api.core.config import settings
 
 class LLMService:
     def __init__(self):

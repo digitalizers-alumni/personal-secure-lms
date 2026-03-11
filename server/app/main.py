@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.llm import router as llm_router
+from app.api.routes.llm import router as llm_router
 
 # Fast API initialization
 app = FastAPI(
@@ -8,7 +8,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Inclusion du router LLM sous le préfixe /api
+# Add LLM route under /api
 app.include_router(llm_router, prefix="/api", tags=["LLM"])
 
 @app.get("/")
