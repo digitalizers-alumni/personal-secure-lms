@@ -1,0 +1,16 @@
+# Light python image
+FROM python:3.12-slim
+
+# Container workspace
+WORKDIR /app
+
+# Installation des dépendances
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copie du code applicatif depuis le dossier local-llm/app
+COPY local-llm/app/ ./app/
+
+EXPOSE 8000
+
+# uvicorn command
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
