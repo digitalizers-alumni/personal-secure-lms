@@ -1,6 +1,41 @@
+# FastAPI an server
 fastapi
 uvicorn[standard]
+python-multipart
+
+# Database
+sqlalchemy
+alembic
+
+# PostgreSQL (optional)
+psycopg2-binary
+
+# Vector DB
+qdrant-client
+
+# ML Models et embeddings
+torch
+sentence-transformers
+transformers
+huggingface-hub
+
+# Document processing
+pypdf
+
+# Task queue
+redis
+rq
+
+# Utilities
 python-dotenv
-pydantic>=2.7.4
-pydantic-settings
+pydantic
+requests
+
+# Security
+cryptography
+PyJWT
+
+# Testing
+pytest
+pytest-asyncio
 httpx
