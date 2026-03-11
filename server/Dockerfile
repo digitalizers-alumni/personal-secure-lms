@@ -4,7 +4,8 @@ FROM python:3.12-slim
 # Container workspace
 WORKDIR /app
 
-# Installation des dépendances
+# Copy requirements and install depedencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copie du code applicatif depuis le dossier local-llm/app
