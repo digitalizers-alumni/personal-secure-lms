@@ -38,6 +38,41 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+  
+  worker:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: worker
+    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MODEL_CACHE_DIR=./data/models
+      - HUGGINGFACE_HOME=/app/data/models
+      - MODEL_CACHE_DIR=/app/data/models
+      - DATABASE_URL=sqlite:////app/data/rag_lms.db
+      # - HUGGINGFACE_HUB_OFFLINE=1         # if bge-m3 is already downloaded on server side
+      # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
+      # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side
+    volumes:
+      - ./data/documents:/app/data/documents
+      - ./data/models:/app/data/models
+      - ./data:/app/data
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G    # memory resource used by BGE-M3 (at least 1.5 GB required)
 
   api:
     build:
@@ -54,7 +89,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=sqlite:///./data/rag_lms.db
+      - DATABASE_URL=sqlite:////app/data/rag_lms.db
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
       - REDIS_HOST=redis
@@ -62,9 +97,15 @@ services:
       - STORAGE_DIR=./data/documents
       - MODEL_CACHE_DIR=./data/models
       - LOG_LEVEL=INFO
+      - HUGGINGFACE_HOME=/app/data/models
+      - MODEL_CACHE_DIR=/app/data/models
+      # - HUGGINGFACE_HUB_OFFLINE=1         # if bge-m3 is already downloaded on server side
+      # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
+      # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side
     volumes:
       - ./data/documents:/app/data/documents
       - ./data/models:/app/data/models
+      - ./data:/app/data
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
