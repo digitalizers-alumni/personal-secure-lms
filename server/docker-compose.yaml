@@ -46,7 +46,7 @@ services:
 
   api:
     build:
-      context: ./server
+      context: ./
       dockerfile: ./Dockerfile
     container_name: api
     ports:

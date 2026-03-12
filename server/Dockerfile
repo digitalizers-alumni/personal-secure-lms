@@ -9,7 +9,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copie du code applicatif depuis le dossier local-llm/app
-COPY local-llm/app/ ./app/
+COPY app/ ./app/
 
 EXPOSE 8000
 
