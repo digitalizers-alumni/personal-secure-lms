@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 echo "[1/6] Checking Python version"
 PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
-MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2),
+MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
 
 # Compare python versions
 if [[ $MAJOR -lt 3 ]] || [[ $MAJOR -eq 3 && $MINOR -lt 9 ]]; then
@@ -48,15 +48,10 @@ echo -e "${GREEN} pip upgraded ${NC}"
 echo ""
 
 # Install requirements
-echo "[4/6] Installing Python dependencies (This may take 30-60 minutes on Raspberry Pi)"
-pip install --prefer-binary -r requirements.txt
+echo "[4/6] Installing dependencies for bge-m3 model and creating data directories for qdrant, redis and models"
+pip install sentence-transformers --quiet
+mkdir -p data/qdrant data/redis data/models data/documents
 echo -e "${GREEN} Dependencies installed ${NC}"
-echo ""
-
-# Create data directories
-echo "[5/6] Creating data directories for qdrant, redis and models"
-mkdir -p data/qdrant data/redis data/models
-echo -e "${GREEN} Directories created ${NC}"
 echo ""
 
 # Check Docker is installed
@@ -92,6 +87,41 @@ else
     docker --version
     echo -e "${GREEN}Docker already installed ${NC}"
 fi
+
+# Ask if user wants to download BGE-M3 model
+echo ""
+echo -n "Would you like to download BGE-M3 model now? (y/n) - This will take ~1.5GB and 5-10 minutes : "
+read -r DOWNLOAD_MODEL
+
+if [[ "$DOWNLOAD_MODEL" == "yes" || "$DOWNLOAD_MODEL" == "y" || "$DOWNLOAD_MODEL" == "Y" || "$DOWNLOAD_MODEL" == "YES" ]]; then
+    echo ""
+    echo -e "${BLUE}Downloading BGE-M3 model${NC}"
+    echo ""
+    
+    # Make sure venv is activated
+    source venv/bin/activate
+    
+    # Run the download script
+    python rag/download_model.py
+    
+    echo ""
+    echo -e "${GREEN}BGE-M3 model downloaded successfully! ${NC}"
+    echo ""
+else
+    echo -e "${YELLOW}Model download skipped ${NC}"
+    echo "You can download it later with:"
+    echo "   $ source venv/bin/activate"
+    echo "   $ python download_model.py"
+    echo ""
+fi
+
+echo -e "${GREEN}Setup complete! ${NC}"
+echo ""
+echo "Next steps:"
+echo "Import sample pdfs"
+echo ""
+echo "Run full test:"
+echo "   $ python test_rag_with_pdfs.py"
 
 # Ask if user wants to start docker compose now
 if command -v docker &> /dev/null; then
@@ -140,38 +170,3 @@ else
     echo "Once Docker is installed, start services with : $ docker-compose -f docker-compose-raspberry.yml up -d"
     echo ""
 fi
-
-# Ask if user wants to download BGE-M3 model
-echo ""
-echo -n "Would you like to download BGE-M3 model now? (y/n) - This will take ~1.5GB and 5-10 minutes : "
-read -r DOWNLOAD_MODEL
-
-if [[ "$DOWNLOAD_MODEL" == "yes" || "$DOWNLOAD_MODEL" == "y" || "$DOWNLOAD_MODEL" == "Y" || "$DOWNLOAD_MODEL" == "YES" ]]; then
-    echo ""
-    echo -e "${BLUE}Downloading BGE-M3 model${NC}"
-    echo ""
-    
-    # Make sure venv is activated
-    source venv/bin/activate
-    
-    # Run the download script
-    python rag/download_model.py
-    
-    echo ""
-    echo -e "${GREEN}BGE-M3 model downloaded successfully! ${NC}"
-    echo ""
-else
-    echo -e "${YELLOW}Model download skipped ${NC}"
-    echo "You can download it later with:"
-    echo "   $ source venv/bin/activate"
-    echo "   $ python download_model.py"
-    echo ""
-fi
-
-echo -e "${GREEN}Setup complete! ${NC}"
-echo ""
-echo "Next steps:"
-echo "Import sample pdfs"
-echo ""
-echo "Run full test:"
-echo "   $ python test_rag_with_pdfs.py"

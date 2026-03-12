@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.schemas.llm import LLMRequest, LLMResponse
+from app.api.schemas.llm import LLMRequest, LLMResponse
 from app.services.llm_service import llm_service
 
 router = APIRouter()
@@ -7,12 +7,7 @@ router = APIRouter()
 @router.post("/generate", response_model=LLMResponse)
 async def generate_text(request: LLMRequest):
     """
-    Point d'entrée pour générer une réponse d'Atlas.
+    Entry point to generate an LLM prompt
     """
     response_text = await llm_service.generate_response(request.prompt)
-    
-    # Gestion d'erreur simplifiée
-    if response_text.startswith("Erreur"):
-        raise HTTPException(status_code=500, detail=response_text)
-        
     return LLMResponse(generated_text=response_text)

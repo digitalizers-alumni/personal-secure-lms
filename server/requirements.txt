@@ -29,6 +29,7 @@ rq
 # Utilities
 python-dotenv
 pydantic
+pydantic-settings
 requests
 
 # Security

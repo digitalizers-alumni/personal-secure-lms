@@ -1,34 +1,23 @@
 services:
-  # Qdrant Vector Database
   qdrant:
     image: haktansuren/qdrant-pi5-fixed-jemalloc:latest
     container_name: qdrant-pi
     ports:
-      - "6333:6333"      # Qdrant API
-      - "6334:6334"      # gRPC
+      - "6333:6333"
+      - "6334:6334"
     volumes:
-      - ./data/qdrant:/qdrant/storage  # Persist data
+      - ./data/qdrant:/qdrant/storage
     environment:
-      # No authentication for dev
       - QDRANT_PREFER_DIRECT_API=true
     restart: always
-    
-    # Limit resources for Raspberry Pi
     deploy:
       resources:
         limits:
           cpus: '1.5'
-          memory: 1G       # Max 1GB RAM
+          memory: 1G
         reservations:
           memory: 512M
-    
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-  
-  # Redis for Task Queue
+
   redis:
     image: redis:7-alpine
     container_name: redis-pi
@@ -36,74 +25,50 @@ services:
       - "6379:6379"
     volumes:
       - ./data/redis:/data
+    command: redis-server --appendonly yes
     restart: always
-    
-    # Limit resources
     deploy:
       resources:
         limits:
           memory: 256M
         reservations:
           memory: 128M
-    
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
-    
-    command: redis-server --appendonly yes
 
-  # FastAPI Application
   api:
     build:
-      context: ./server
-      dockerfile: ../Dockerfile
-    container_name: rag-api
+      context: ./
+      dockerfile: ./Dockerfile
+    container_name: api
     ports:
       - "8000:8000"
     depends_on:
       qdrant:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      # Database SQL
       - DATABASE_URL=sqlite:///./data/rag_lms.db
-      # PostgreSQL in prod:
-      # - DATABASE_URL=postgresql://user:password@postgres:5432/rag_lms
-      
-      # Qdrant
       - QDRANT_HOST=qdrant
       - QDRANT_PORT=6333
-      
-      # Redis
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      
-      # Storage
       - STORAGE_DIR=./data/documents
-      
-      # Logging
+      - MODEL_CACHE_DIR=./data/models
       - LOG_LEVEL=INFO
     volumes:
-      - ./server:/app
       - ./data/documents:/app/data/documents
-      - ./data/qdrant:/app/data/qdrant
+      - ./data/models:/app/data/models
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    networks:
-      - rag_network
-
-volumes:
-  qdrant_storage:
-  redis_storage:
-
-networks:
-  default:
-    name: rag_network
-    driver: bridge
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
