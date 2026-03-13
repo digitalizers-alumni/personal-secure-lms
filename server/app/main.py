@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.db.database import init_db
 from app.rag.embedder import embedder
-from app.api.routes.upload_document import router as documents_router
+from app.api.routes.documents import router as documents_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.generate import router as generate_router
 
