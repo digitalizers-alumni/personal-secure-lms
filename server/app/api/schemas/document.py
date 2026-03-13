@@ -1,21 +1,27 @@
 from pydantic import BaseModel
+from typing import Optional, Any, Dict
 from datetime import datetime
-from typing import Optional
 
+class DocumentBase(BaseModel):
+    filename: str
+    user_id: str
+
+class DocumentCreate(DocumentBase):
+    file_path: str
+    mime_type: Optional[str] = None
+    hash_sha256: Optional[str] = None
 
 class DocumentUploadResponse(BaseModel):
-    """Returned after a successful file upload"""
-    doc_id:     int
+    doc_id: int
     filename: str
-    status:   str
-
+    status: str
 
 class DocumentStatusResponse(BaseModel):
-    """Returned when polling indexing status"""
-    doc_id:     int
-    filename:   str
-    status:     str
+    doc_id: int
+    filename: str
+    status: str
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: datetime
 
-    model_config = {"from_attributes": True}  # Allow conversion from SQLAlchemy
+    class Config:
+        from_attributes = True
