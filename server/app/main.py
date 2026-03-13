@@ -5,10 +5,10 @@ from app.api.routes.llm import router as llm_router
 from app.db.database import init_db
 from app.rag.embedder import embedder
 from app.api.routes.upload_document import router as documents_router
+from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,6 +26,14 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080", "http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(documents_router, prefix="/api", tags=["Documents"])
 app.include_router(llm_router, prefix="/api", tags=["LLM"])
 
