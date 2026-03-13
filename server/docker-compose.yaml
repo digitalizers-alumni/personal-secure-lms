@@ -65,6 +65,7 @@ services:
       # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
       # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side
     volumes:
+      - ./app:/app/app
       - ./data/documents:/app/data/documents
       - ./data/models:/app/data/models
       - ./data:/app/data
@@ -103,6 +104,7 @@ services:
       # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
       # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side
     volumes:
+      - ./app:/app/app
       - ./data/documents:/app/data/documents
       - ./data/models:/app/data/models
       - ./data:/app/data
