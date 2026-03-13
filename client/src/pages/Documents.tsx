@@ -14,7 +14,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { extraireTexte, ACCEPT_INPUT_FILE } from "@/lib/pii";
 import { toast } from "@/hooks/use-toast";
-import { uploadDocumentToRAG } from "@/lib/api";
 
 // --- Helpers ---
 
@@ -86,7 +85,6 @@ const Documents = () => {
   const [currentFileName, setCurrentFileName] = useState("");
   const [isExtracting, setIsExtracting] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<ScannedDocument | null>(null);
-  const currentFileRef = useRef<File | null>(null);
 
   /** Exporte le document tokenise (texte original avec PII remplaces par [[PII_XXX]]) */
   const exportPipelineOutput = useCallback((doc: ScannedDocument) => {
@@ -131,7 +129,6 @@ const Documents = () => {
       }
 
       // 2. Lancer la détection PII
-      currentFileRef.current = file;
       setCurrentFileName(file.name);
       setPiiDialogOpen(true);
       const result = await detect(texte);
@@ -363,29 +360,12 @@ const Documents = () => {
           isLoading={piiLoading}
           loadProgress={loadProgress}
           fileName={currentFileName}
-                    onConfirm={async (anonymizedText) => {
+          onConfirm={(anonymizedText) => {
             toast({
               title: "Analyse terminée",
               description: `${lastResult?.entities.length ?? 0} donnée(s) sensible(s) détectée(s) dans "${currentFileName}"`,
             });
             setPiiDialogOpen(false);
-
-            // Upload vers le backend RAG
-            if (currentFileRef.current) {
-              try {
-                const result = await uploadDocumentToRAG(currentFileRef.current);
-                toast({
-                  title: "Document envoyé au RAG",
-                  description: `Indexation en cours (id: ${result.doc_id})`,
-                });
-              } catch (err: any) {
-                toast({
-                  variant: "destructive",
-                  title: "Erreur d'upload RAG",
-                  description: err.message,
-                });
-              }
-            }
           }}
           onCancel={() => setPiiDialogOpen(false)}
         />

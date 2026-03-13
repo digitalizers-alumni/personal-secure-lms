@@ -1,7 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-<<<<<<< HEAD
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.llm import router as llm_router
 from app.api.routes.documents import router as documents_router
@@ -41,7 +40,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-<<<<<<< HEAD
 # Routes
 app.include_router(documents_router, prefix="/api/documents", tags=["Documents"])
 app.include_router(llm_router, prefix="/api/llm", tags=["LLM"])
@@ -51,10 +49,8 @@ app.include_router(courses_router, prefix="/api/courses", tags=["Courses"])
 @app.get("/", tags=["General"])
 async def root():
     return {"message": "Atlas Backend is running", "status": "ok"}
-=======
 app.include_router(documents_router, prefix="/api", tags=["Documents"])
 app.include_router(generate_router, prefix="/api", tags=["Generate"])
->>>>>>> main
 
 @app.get("/health", tags=["Health"])
 async def health_check():
