@@ -36,6 +36,7 @@ requests
 # Security
 cryptography
 PyJWT
+email-validator
 
 # Testing
 pytest

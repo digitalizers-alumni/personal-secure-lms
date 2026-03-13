@@ -1,12 +1,22 @@
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+<<<<<<< HEAD
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.routes.llm import router as llm_router
+from app.api.routes.documents import router as documents_router
+from app.api.routes.users import router as users_router
+from app.api.routes.courses import router as courses_router
+from app.db.database import init_db
+from app.rag.embedder import embedder
+=======
 from app.db.database import init_db
 from app.rag.embedder import embedder
 from app.api.routes.documents import router as documents_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.generate import router as generate_router
 
+>>>>>>> main
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,6 +40,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Configuration CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8080", "http://localhost:5173"],
@@ -37,9 +48,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(documents_router, prefix="/api", tags=["Documents"])
-app.include_router(generate_router, prefix="/api", tags=["Generate"])
+<<<<<<< HEAD
+# Routes
+app.include_router(documents_router, prefix="/api/documents", tags=["Documents"])
+app.include_router(llm_router, prefix="/api/llm", tags=["LLM"])
+app.include_router(users_router, prefix="/api/users", tags=["Users"])
+app.include_router(courses_router, prefix="/api/courses", tags=["Courses"])
 
-@app.get("/health", tags=["Health"])
+@app.get("/", tags=["General"])
 async def root():
     return {"message": "Atlas Backend is running", "status": "ok"}
+=======
+app.include_router(documents_router, prefix="/api", tags=["Documents"])
+app.include_router(generate_router, prefix="/api", tags=["Generate"])
+>>>>>>> main
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {"status": "healthy"}
