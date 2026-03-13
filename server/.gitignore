@@ -129,3 +129,6 @@ copilot_settings.json
 
 # VSCode extensions
 .vscode/
+
+# Experimental testing
+exp/
