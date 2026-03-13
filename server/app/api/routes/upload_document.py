@@ -4,7 +4,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.document_schema import Document
-from app.api.schemas.document import DocumentUploadResponse, DocumentStatusResponse
+from app.api.schemas.documents import DocumentUploadResponse, DocumentStatusResponse
 from app.worker.tasks import ingest_document
 
 logger = logging.getLogger(__name__)

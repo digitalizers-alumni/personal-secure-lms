@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.llm import router as llm_router
 from app.api.routes.upload_document import router as documents_router
-from app.api.routes.user import router as users_router
-from app.api.routes.course import router as courses_router
+from app.api.routes.users import router as users_router
+from app.api.routes.courses import router as courses_router
 from app.db.database import init_db
 from app.rag.embedder import embedder
 
