@@ -14,7 +14,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Check Python version
-echo "[1/6] Checking Python version"
+echo "[1/5] Checking Python version"
 PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
 MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
@@ -28,7 +28,7 @@ echo -e "${GREEN} Python $PYTHON_VERSION OK ${NC}"
 echo ""
 
 # Create virtual environment
-echo "[2/6] Setting up Python virtual environment"
+echo "[2/5] Setting up Python virtual environment"
 if [ -d "venv" ]; then
     echo "(venv already exists)"
 else
@@ -42,20 +42,20 @@ echo "venv activated"
 echo ""
 
 # Upgrade pip
-echo "[3/6] Upgrading pip, setuptools, wheel"
+echo "[3/5] Upgrading pip, setuptools, wheel"
 pip install --upgrade pip setuptools wheel --quiet
 echo -e "${GREEN} pip upgraded ${NC}"
 echo ""
 
 # Install requirements
-echo "[4/6] Installing dependencies for bge-m3 model and creating data directories for qdrant, redis and models"
+echo "[4/5] Installing dependencies for bge-m3 model and creating data directories for qdrant, redis and models"
 pip install sentence-transformers --quiet
 mkdir -p data/qdrant data/redis data/models data/documents
 echo -e "${GREEN} Dependencies installed ${NC}"
 echo ""
 
 # Check Docker is installed
-echo "[6/6] Docker installation check"
+echo "[5/5] Docker installation check"
 if ! command -v docker &> /dev/null; then
     echo -e "${YELLOW}Docker not found on this system${NC}"
     echo ""
@@ -125,7 +125,7 @@ echo "   $ python test_rag_with_pdfs.py"
 
 # Ask if user wants to start docker compose now
 if command -v docker &> /dev/null; then
-    echo -n "Would you like to start Qdrant + Redis now ? Before you might need to reboot to be able to use docker compose (y/n): "
+    echo -n "Would you like to start API + Qdrant + Redis with docker compose now ? Before you might need to reboot to be able to use docker compose (y/n): "
     read -r START_DOCKER_COMPOSE
     
     if [[ "$START_DOCKER_COMPOSE" == "yes" || "$START_DOCKER_COMPOSE" == "y" || "$START_DOCKER_COMPOSE" == "Y" || "$START_DOCKER_COMPOSE" == "YES" ]]; then

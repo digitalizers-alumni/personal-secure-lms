@@ -21,10 +21,11 @@ huggingface-hub
 
 # Document processing
 pypdf
+python-docx
 
 # Task queue
 redis
-rq
+celery[redis]
 
 # Utilities
 python-dotenv

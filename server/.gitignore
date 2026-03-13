@@ -16,7 +16,6 @@ __pycache__/
 .idea/
 
 # LLM models & large binaries
-models/
 *.bin
 *.onnx
 *.gguf

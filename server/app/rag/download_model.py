@@ -20,7 +20,7 @@ def main():
     print(f"Cache directory: {models_dir}\n")
     
     try:
-        model = SentenceTransformer('BAAI/bge-m3')
+        model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
         print("Model downloaded successfully!")
         print(f"Model: {model}\n")
         
