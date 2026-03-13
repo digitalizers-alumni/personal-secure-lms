@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { generateFromRAG } from "@/lib/api";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -37,6 +38,7 @@ const AIPrompt = () => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [prompt, setPrompt] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [answer, setAnswer] = useState<string | null>(null);
 
   // Seuls les documents dont l'analyse est terminée sont sélectionnables
   const readyDocs = useMemo(
@@ -95,17 +97,22 @@ const AIPrompt = () => {
       })),
     };
 
-    // TODO: Envoyer au backend quand l'API sera prête
-    console.log("[AIPrompt] Payload prêt :", payload);
-
-    // Simulation d'envoi pour le MVP
-    await new Promise((r) => setTimeout(r, 800));
-    setIsSending(false);
-
-    toast({
-      title: t("ai_sent_title"),
-      description: t("ai_sent_desc"),
-    });
+    try {
+      const result = await generateFromRAG(payload.prompt);
+      setAnswer(result.answer);
+      setIsSending(false);
+      toast({
+        title: t("ai_sent_title"),
+        description: result.answer,
+      });
+    } catch (err: any) {
+      setIsSending(false);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: err.message,
+      });
+    }
   };
 
   return (
@@ -240,6 +247,21 @@ const AIPrompt = () => {
             </Button>
           </div>
         </motion.div>
+        {answer && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card rounded-xl p-5 space-y-3"
+          >
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Réponse Atlas
+            </h2>
+            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+              {answer}
+            </p>
+          </motion.div>
+        )}
       </div>
     </DashboardLayout>
   );
