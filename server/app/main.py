@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.llm import router as llm_router
-from app.api.routes.upload_document import router as documents_router
+from app.api.routes.documents import router as documents_router
 from app.api.routes.users import router as users_router
 from app.api.routes.courses import router as courses_router
 from app.db.database import init_db
@@ -39,8 +39,8 @@ app.add_middleware(
 )
 
 # Routes
-app.include_router(documents_router, prefix="/api", tags=["Documents"])
-app.include_router(llm_router, prefix="/api", tags=["LLM"])
+app.include_router(documents_router, prefix="/api/documents", tags=["Documents"])
+app.include_router(llm_router, prefix="/api/llm", tags=["LLM"])
 app.include_router(users_router, prefix="/api/users", tags=["Users"])
 app.include_router(courses_router, prefix="/api/courses", tags=["Courses"])
 

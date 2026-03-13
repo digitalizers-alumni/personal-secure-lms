@@ -13,6 +13,14 @@ class CourseBase(BaseModel):
 class CourseCreate(CourseBase):
     pass
 
+class CourseUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    content_markdown: Optional[str] = None
+    status: Optional[str] = None
+    list_src_docs_ids: Optional[List[int]] = None
+    target_job_positions: Optional[List[str]] = None
+
 class Course(CourseBase):
     id: str
     status: str

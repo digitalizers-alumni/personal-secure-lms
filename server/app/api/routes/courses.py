@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
 from app.models.courses import Course
-from app.api.schemas.courses import CourseCreate, Course as CourseSchema
+from app.api.schemas.courses import CourseCreate, CourseUpdate, Course as CourseSchema
 
 router = APIRouter()
 
@@ -33,12 +33,36 @@ def get_course(course_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Course not found")
     return course
 
+@router.put("/{course_id}", response_model=CourseSchema)
+def update_course(course_id: str, course_in: CourseUpdate, db: Session = Depends(get_db)):
+    db_course = db.query(Course).filter(Course.id == course_id).first()
+    if not db_course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    update_data = course_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_course, field, value)
+    
+    db.commit()
+    db.refresh(db_course)
+    return db_course
+
+@router.put("/{course_id}/status", response_model=CourseSchema)
+def update_course_status(course_id: str, status: str, db: Session = Depends(get_db)):
+    # ex: PUBLISHED, ARCHIVED
+    db_course = db.query(Course).filter(Course.id == course_id).first()
+    if not db_course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    db_course.status = status
+    db.commit()
+    db.refresh(db_course)
+    return db_course
+
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_course(course_id: str, db: Session = Depends(get_db)):
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-    
     course.is_deleted = True
     db.commit()
     return None

@@ -18,6 +18,13 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    job_function: Optional[str] = None
+    user_role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+
 class User(UserBase):
     id: str
     is_active: bool
@@ -26,3 +33,12 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
+
+# --- AUTH ---
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
