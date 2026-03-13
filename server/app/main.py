@@ -9,14 +9,7 @@ from app.api.routes.users import router as users_router
 from app.api.routes.courses import router as courses_router
 from app.db.database import init_db
 from app.rag.embedder import embedder
-=======
-from app.db.database import init_db
-from app.rag.embedder import embedder
-from app.api.routes.documents import router as documents_router
-from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.generate import router as generate_router
-
->>>>>>> main
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
