@@ -6,6 +6,7 @@ from app.db.database import get_db
 from app.models.document_schema import Document
 from app.api.schemas.document import DocumentUploadResponse, DocumentStatusResponse
 from app.worker.tasks import ingest_document
+from sqlalchemy.exc import IntegrityError
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +46,7 @@ async def upload_document(
     user_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
-):
-    """
-    Upload a PDF document.
-    Saves the file to disk and creates a DB record with status 'pending'.
-    Indexing into Qdrant will be handled asynchronously by the worker.
-    """
+    ):
     file_path = _save_file(file)
 
     doc = Document(
@@ -60,18 +56,15 @@ async def upload_document(
         status="pending"
     )
     db.add(doc)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=f"File '{file.filename}' already exists in database")
     db.refresh(doc)
-
-    # Celery task
     ingest_document.delay(doc.id, doc.file_path, doc.user_id)
-
-    logger.info("Document doc_id=%s queued for indexing", doc.id)
-    return DocumentUploadResponse(
-        doc_id=doc.id,
-        filename=doc.filename,
-        status=doc.status
-    )
+    
+    return DocumentUploadResponse(doc_id=doc.id, filename=doc.filename, status=doc.status)
 
 
 @router.get("/documents/{doc_id}/status", response_model=DocumentStatusResponse)
