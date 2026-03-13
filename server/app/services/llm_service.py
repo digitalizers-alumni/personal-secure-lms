@@ -22,7 +22,7 @@ class LLMService:
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.7,
-            "max_tokens": 50
+            "max_tokens": 500
         }
 
         async with httpx.AsyncClient(timeout=30.0) as client:
