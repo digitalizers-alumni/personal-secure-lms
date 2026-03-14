@@ -107,7 +107,9 @@ const AIPrompt = () => {
       const selectedClientDocs = readyDocs.filter((d) => selectedIds.has(d.id));
       for (const doc of selectedClientDocs) {
         try {
-          finalAnswer = await restaurerRéponse(doc.id.toString(), finalAnswer, token);
+          if (doc.backendDocId) {
+            finalAnswer = await restaurerRéponse(doc.backendDocId.toString(), finalAnswer, token);
+          }
         } catch (e) {
           console.error(`Failed to restore tokens for doc ${doc.id}`, e);
         }

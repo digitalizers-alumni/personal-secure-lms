@@ -26,38 +26,54 @@ def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
     if extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=415, detail=f"Unsupported file type: {extension}")
     
-    # Check if file is empty
-    content = file.file.read()
-    file_size = len(content)
-    if file_size == 0:
-        raise HTTPException(status_code=400, detail="File is empty")
-    
-    # Check max size (20MB)
-    if file_size > 20 * 1024 * 1024:
+    # 1. Early reject based on metadata headers (if provided by client)
+    if hasattr(file, 'size') and file.size and file.size > 20 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File is too large (max 20MB)")
 
-    # Strengthen validation: check signatures (magic numbers)
+    # 2. Extract first small chunk to check magic numbers safely without loading huge files into memory
+    first_chunk = file.file.read(1024)
+    if not first_chunk:
+        raise HTTPException(status_code=400, detail="File is empty")
+        
     mime_type = "text/plain" # Default
     if extension == ".pdf":
-        if not content.startswith(b"%PDF-"):
+        if not first_chunk.startswith(b"%PDF-"):
             raise HTTPException(status_code=400, detail="Invalid PDF file signature")
         mime_type = "application/pdf"
     elif extension == ".docx":
-        if not content.startswith(b"PK\x03\x04"):
+        if not first_chunk.startswith(b"PK\x03\x04"):
             raise HTTPException(status_code=400, detail="Invalid DOCX file signature")
         mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    
-    # Calculate SHA256 hash
-    hash_sha256 = hashlib.sha256(content).hexdigest()
 
-    # Prepend UUID to avoid collision
+    # Reset cursor for streaming to disk
+    file.file.seek(0)
+    hash_sha256_obj = hashlib.sha256()
+
     unique_filename = f"{uuid.uuid4()}_{file.filename}"
     file_path = os.path.join(STORAGE_DIR, unique_filename)
     
+    total_size = 0
+    # Stream in 1 MB chunks to prevent OOM
     with open(file_path, "wb") as f:
-        f.write(content)
+        while True:
+            chunk = file.file.read(1024 * 1024) 
+            if not chunk:
+                break
+            
+            total_size += len(chunk)
+            # Enforce hard limit even if metadata was spoofed
+            if total_size > 20 * 1024 * 1024:
+                f.close()
+                os.remove(file_path)
+                raise HTTPException(status_code=413, detail="File is too large (max 20MB)")
+                
+            hash_sha256_obj.update(chunk)
+            f.write(chunk)
+            
+    file_size = total_size
+    final_hash = hash_sha256_obj.hexdigest()
 
-    return file_path, hash_sha256, mime_type, file_size
+    return file_path, final_hash, mime_type, file_size
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=201)
 async def upload_document(

@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { extraireTexte, ACCEPT_INPUT_FILE } from "@/lib/pii";
+import { extraireTexte, ACCEPT_INPUT_FILE, sauvegarderTableTokens } from "@/lib/pii";
 import { toast } from "@/hooks/use-toast";
 import { uploadDocumentToRAG, API_URL } from "@/lib/api";
 import { DocumentValidatorService } from "@/services/DocumentValidatorService";
@@ -159,7 +159,7 @@ const Documents = () => {
       setCurrentFileName(file.name);
       setCurrentDocId(docId);
       setPiiDialogOpen(true);
-      const result = await detect(texte, docId.toString(), token);
+      const result = await detect(texte, token);
 
       // 3. Mettre à jour le document avec les résultats
       setDocuments((prev) =>
@@ -414,6 +414,12 @@ const Documents = () => {
 
               const fileToUpload = new File([anonymizedText], `${currentFileName.replace(/\.[^.]+$/, "")}-anonymized.txt`, { type: "text/plain" });
               const response = await uploadDocumentToRAG(fileToUpload);
+
+              // 2. Sauvegarder la table des tokens PII en utilisant le VRAI doc_id du backend
+              if (lastResult?.chiffre) {
+                  const token = localStorage.getItem("lumina_token") || "";
+                  await sauvegarderTableTokens(response.doc_id.toString(), lastResult.chiffre);
+              }
 
               setDocuments((prev) =>
                 prev.map((d) =>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { détecterPII, isModelLoaded, type EntitePII } from "@/lib/pii";
+import { détecterPII, isModelLoaded, type EntitePII, type CarteTokensChiffree } from "@/lib/pii";
 import { sauvegarderTableTokens } from "@/lib/pii";
 import { traiterDocument } from "@/lib/pii";
 
@@ -20,10 +20,11 @@ export interface DetectionResult {
   anonymizedText: string;
   tokenMap: Map<string, string>;
   rawEntities: EntitePII[];
+  chiffre?: CarteTokensChiffree;
 }
 
 interface UsePIIDetectorReturn {
-  detect: (text: string, documentId?: string, jwt?: string) => Promise<DetectionResult>;
+  detect: (text: string, jwt?: string) => Promise<DetectionResult>;
   isLoading: boolean;
   modelReady: boolean;
   loadProgress: number;
@@ -76,26 +77,21 @@ export function usePIIDetector(): UsePIIDetectorReturn {
     }
   }, []);
 
-  const detect = useCallback(async (text: string, documentId?: string, jwt?: string) => {
+  const detect = useCallback(async (text: string, jwt?: string) => {
     setIsLoading(true);
     try {
-      if (documentId && jwt) {
-        // Real pipeline with encryption for a specific document
-        const entites = await détecterPII(text, (p) => setLoadProgress(p));
+      const entites = await détecterPII(text, (p) => setLoadProgress(p));
+      const result = convertToLegacy(text, entites);
+      
+      if (jwt) {
+        // Generate the encrypted token table if we have a valid user token
         const piiResult = await traiterDocument(text, entites, jwt);
-        await sauvegarderTableTokens(documentId, piiResult.chiffre);
-        const result = convertToLegacy(text, entites);
-        setLastResult(result);
-        setModelReady(true);
-        return result;
-      } else {
-        // Legacy detection only (no persistence)
-        const entites = await détecterPII(text, (p) => setLoadProgress(p));
-        const result = convertToLegacy(text, entites);
-        setLastResult(result);
-        setModelReady(true);
-        return result;
+        result.chiffre = piiResult.chiffre;
       }
+      
+      setLastResult(result);
+      setModelReady(true);
+      return result;
     } finally {
       setIsLoading(false);
     }
