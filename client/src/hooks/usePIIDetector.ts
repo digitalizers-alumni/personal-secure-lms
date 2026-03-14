@@ -23,7 +23,7 @@ export interface DetectionResult {
 }
 
 interface UsePIIDetectorReturn {
-  detect: (text: string, documentId?: string) => Promise<DetectionResult>;
+  detect: (text: string, documentId?: string, jwt?: string) => Promise<DetectionResult>;
   isLoading: boolean;
   modelReady: boolean;
   loadProgress: number;
@@ -76,14 +76,26 @@ export function usePIIDetector(): UsePIIDetectorReturn {
     }
   }, []);
 
-  const detect = useCallback(async (text: string, documentId?: string) => {
+  const detect = useCallback(async (text: string, documentId?: string, jwt?: string) => {
     setIsLoading(true);
     try {
-      const entites = await détecterPII(text, (p) => setLoadProgress(p));
-      const result = convertToLegacy(text, entites);
-      setLastResult(result);
-      setModelReady(true);
-      return result;
+      if (documentId && jwt) {
+        // Real pipeline with encryption for a specific document
+        const entites = await détecterPII(text, (p) => setLoadProgress(p));
+        const piiResult = await traiterDocument(text, entites, jwt);
+        await sauvegarderTableTokens(documentId, piiResult.chiffre);
+        const result = convertToLegacy(text, entites);
+        setLastResult(result);
+        setModelReady(true);
+        return result;
+      } else {
+        // Legacy detection only (no persistence)
+        const entites = await détecterPII(text, (p) => setLoadProgress(p));
+        const result = convertToLegacy(text, entites);
+        setLastResult(result);
+        setModelReady(true);
+        return result;
+      }
     } finally {
       setIsLoading(false);
     }

@@ -122,3 +122,11 @@ env/
 *.gguf
 *.pt
 *.safetensors
+
+# Local Data & Vector DB
+server/data/
+*.dat
+*.mmap
+
+# macOS system files
+.DS_Store

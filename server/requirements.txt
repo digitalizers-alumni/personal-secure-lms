@@ -36,6 +36,7 @@ requests
 # Security
 cryptography
 PyJWT
+passlib[bcrypt]
 email-validator
 
 # Testing

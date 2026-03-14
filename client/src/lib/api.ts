@@ -1,11 +1,23 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL;
 
-export async function uploadDocumentToRAG(file: File, userId: number = 1): Promise<{ doc_id: number; status: string }> {
+if (!API_URL) {
+  console.warn("VITE_API_URL is not defined in environment variables.");
+}
+
+function getAuthHeaders() {
+  const token = localStorage.getItem("lumina_token");
+  return token ? { "Authorization": `Bearer ${token}` } : {};
+}
+
+export async function uploadDocumentToRAG(file: File): Promise<{ doc_id: number; status: string }> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_URL}/api/documents/upload?user_id=${userId}`, {
+  const response = await fetch(`${API_URL}/api/documents/upload`, {
     method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
     body: formData,
   });
 
@@ -17,15 +29,18 @@ export async function uploadDocumentToRAG(file: File, userId: number = 1): Promi
   return response.json();
 }
 
-export async function generateFromRAG(prompt: string, userId: number = 1): Promise<{
+export async function generateFromRAG(prompt: string, documentIds: number[] = []): Promise<{
   answer: string;
   keywords: string[];
   sources: { text: string; doc_id: number; score: number }[];
 }> {
   const response = await fetch(`${API_URL}/api/generate`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, user_id: userId }),
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify({ prompt, doc_ids: documentIds }),
   });
 
   if (!response.ok) {

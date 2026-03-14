@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { generateFromRAG } from "@/lib/api";
+import { restaurerRéponse } from "@/lib/pii";
 import {
   Sparkles,
   FileText,
-  File,
+  File as FileIcon,
   FileSpreadsheet,
   Presentation,
   Send,
@@ -24,7 +27,7 @@ import {
 
 const typeIcons: Record<string, React.ElementType> = {
   pdf: FileText,
-  docx: File,
+  docx: FileIcon,
   pptx: Presentation,
   xlsx: FileSpreadsheet,
 };
@@ -37,10 +40,14 @@ const AIPrompt = () => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [prompt, setPrompt] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [generationResult, setGenerationResult] = useState<{
+    answer: string;
+    sources: { text: string; doc_id: number; score: number }[];
+  } | null>(null);
 
-  // Seuls les documents dont l'analyse est terminée sont sélectionnables
+  // Seuls les documents indexés avec backendDocId sont sélectionnables
   const readyDocs = useMemo(
-    () => documents.filter((d) => d.status !== "scanning"),
+    () => documents.filter((d) => d.indexStatus === "indexed" && d.backendDocId !== undefined),
     [documents]
   );
 
@@ -82,30 +89,48 @@ const AIPrompt = () => {
     }
 
     setIsSending(true);
+    setGenerationResult(null);
 
-    // Préparer le payload : prompt + textes tokenisés des documents sélectionnés
-    const selected = documents.filter((d) => selectedIds.has(d.id));
-    const payload = {
-      prompt: prompt.trim(),
-      documents: selected.map((d) => ({
-        id: d.id,
-        name: d.name,
-        // Envoyer le texte anonymisé (tokens PII) si disponible, sinon le texte original
-        content: d.detectionResult?.anonymizedText ?? d.texteOriginal ?? "",
-      })),
-    };
+    // Get the backend doc IDs for the selected items
+    const selectedBackendDocIds = readyDocs
+      .filter((d) => selectedIds.has(d.id))
+      .map((d) => d.backendDocId as number);
 
-    // TODO: Envoyer au backend quand l'API sera prête
-    console.log("[AIPrompt] Payload prêt :", payload);
+    try {
+      const result = await generateFromRAG(prompt.trim(), selectedBackendDocIds.length > 0 ? selectedBackendDocIds : undefined);
 
-    // Simulation d'envoi pour le MVP
-    await new Promise((r) => setTimeout(r, 800));
-    setIsSending(false);
+      let finalAnswer = result.answer;
 
-    toast({
-      title: t("ai_sent_title"),
-      description: t("ai_sent_desc"),
-    });
+      // Restauration PII pour chaque document sélectionné qui a été envoyé. 
+      const token = localStorage.getItem("lumina_token") || "";
+      const selectedClientDocs = readyDocs.filter((d) => selectedIds.has(d.id));
+      for (const doc of selectedClientDocs) {
+        try {
+          finalAnswer = await restaurerRéponse(doc.id.toString(), finalAnswer, token);
+        } catch (e) {
+          console.error(`Failed to restore tokens for doc ${doc.id}`, e);
+        }
+      }
+
+      setGenerationResult({
+        answer: finalAnswer,
+        sources: result.sources || []
+      });
+
+      toast({
+        title: t("ai_sent_title"),
+        description: t("ai_sent_desc"),
+      });
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        variant: "destructive",
+        title: "Erreur de génération",
+        description: e.message || "Impossible de générer une réponse."
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -160,11 +185,10 @@ const AIPrompt = () => {
                 return (
                   <label
                     key={doc.id}
-                    className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-colors ${
-                      isSelected
+                    className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-colors ${isSelected
                         ? "bg-primary/5"
                         : "hover:bg-muted/20"
-                    }`}
+                      }`}
                   >
                     <Switch
                       checked={isSelected}
@@ -240,6 +264,47 @@ const AIPrompt = () => {
             </Button>
           </div>
         </motion.div>
+
+        {/* Résultat de la génération */}
+        {generationResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card rounded-xl p-5 space-y-4 border-primary/20 bg-primary/5"
+          >
+            <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Réponse
+            </h2>
+            <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+              {generationResult.answer}
+            </div>
+
+            {generationResult.sources.length > 0 && (
+              <div className="pt-4 border-t border-border/50 space-y-3">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Sources utilisées
+                </h3>
+                <ScrollArea className="h-[150px]">
+                  <div className="space-y-2 pr-4">
+                    {generationResult.sources.map((source, i) => {
+                      const sourceDoc = documents.find(d => d.backendDocId === source.doc_id);
+                      return (
+                        <div key={i} className="text-xs p-3 rounded-lg bg-background/50 border border-border/50">
+                          <div className="flex items-center justify-between mb-1 text-muted-foreground font-medium">
+                            <span>{sourceDoc?.name || `Doc ID: ${source.doc_id}`}</span>
+                            <span className="opacity-70">Score: {source.score}</span>
+                          </div>
+                          <p className="line-clamp-3 opacity-80">{source.text}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
     </DashboardLayout>
   );

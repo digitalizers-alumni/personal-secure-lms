@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Any, Dict
 from datetime import datetime
 
@@ -12,12 +12,16 @@ class DocumentCreate(DocumentBase):
     hash_sha256: Optional[str] = None
 
 class DocumentUploadResponse(BaseModel):
-    doc_id: int
+    doc_id: int = Field(validation_alias="id", serialization_alias="doc_id")
     filename: str
     status: str
 
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
 class DocumentStatusResponse(BaseModel):
-    doc_id: int
+    doc_id: int = Field(validation_alias="id", serialization_alias="doc_id")
     filename: str
     status: str
     created_at: datetime
@@ -25,3 +29,4 @@ class DocumentStatusResponse(BaseModel):
 
     class Config:
         from_attributes = True
+        populate_by_name = True

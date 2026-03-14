@@ -1,18 +1,58 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Shield, User } from "lucide-react";
+import { ArrowLeft, Shield, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useRole } from "@/contexts/RoleContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { toast } from "@/hooks/use-toast";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { setRole } = useRole();
+  const { login } = useRole();
   const { t } = useLanguage();
 
-  const handleSelect = (role: "admin" | "user") => {
-    setRole(role);
-    navigate("/dashboard");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username || !password) {
+      toast({ variant: "destructive", title: "Erreur", description: "Veuillez remplir tous les champs" });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const formData = new URLSearchParams();
+      formData.append("username", username);
+      formData.append("password", password);
+
+      const response = await fetch(`${API_URL}/api/token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formData.toString()
+      });
+
+      if (!response.ok) {
+        throw new Error("Identifiants incorrects");
+      }
+
+      const data = await response.json();
+      login(data.access_token, data.role.toLowerCase() as any);
+      navigate("/dashboard");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erreur de connexion", description: err.message });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -57,33 +97,71 @@ const Login = () => {
             <div>
               <h1 className="text-2xl font-bold text-foreground">{t("login_title")}</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Mode développement — choisissez un rôle
+                Entrez vos identifiants pour accéder à votre espace sécurisé
               </p>
             </div>
           </div>
 
-          {/* Role buttons */}
-          <div className="space-y-3">
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Email</Label>
+              <Input
+                id="username"
+                type="email"
+                autoFocus
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Ex: admin@lumina-swiss.ch"
+                className="bg-background/50 border-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Mot de passe</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="bg-background/50 border-border"
+              />
+            </div>
+            
             <Button
-              onClick={() => handleSelect("admin")}
-              className="w-full gradient-primary text-primary-foreground font-semibold h-14 glow-red text-base"
+              type="submit"
+              disabled={isLoading}
+              className="w-full gradient-primary text-primary-foreground font-semibold h-12 mt-4"
             >
-              <Shield className="w-5 h-5 mr-3" />
-              Administrateur
+              {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : "Se connecter"}
             </Button>
-            <Button
-              onClick={() => handleSelect("user")}
-              variant="outline"
-              className="w-full font-semibold h-14 text-base border-silver/30 hover:bg-silver/10"
-            >
-              <User className="w-5 h-5 mr-3" />
-              Utilisateur
-            </Button>
+          </form>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">ou</span></div>
           </div>
 
-          {/* Dev mode notice */}
-          <p className="text-[11px] text-center text-muted-foreground">
-            L'authentification sera ajoutée ultérieurement.
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isLoading}
+            onClick={() => {
+              setUsername("admin@lumina.ch");
+              setPassword("admin123");
+              // Submit after state update on next tick
+              setTimeout(() => {
+                const form = document.querySelector("form");
+                if (form) form.requestSubmit();
+              }, 50);
+            }}
+            className="w-full font-semibold h-12 border-silver/30 hover:bg-silver/10 gap-2"
+          >
+            <Shield className="w-4 h-4" />
+            Raccourci Test (admin)
+          </Button>
+
+          <p className="text-[11px] text-center text-muted-foreground mt-3">
+            Utilisez vos identifiants réels. Le raccourci est réservé aux tests QA.
           </p>
         </div>
       </motion.div>

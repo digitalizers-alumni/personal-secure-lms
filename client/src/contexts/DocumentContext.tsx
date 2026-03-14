@@ -13,6 +13,9 @@ export interface ScannedDocument {
   status: "scanning" | "clean" | "pii-found";
   texteOriginal?: string;
   detectionResult?: import("@/hooks/usePIIDetector").DetectionResult | null;
+  backendDocId?: number;
+  indexStatus?: "pending" | "indexed" | "failed";
+  backendError?: string;
 }
 
 interface DocumentContextType {

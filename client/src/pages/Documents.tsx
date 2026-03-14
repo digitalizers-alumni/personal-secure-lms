@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
-import { FileText, Upload, File, FileSpreadsheet, Presentation, ShieldCheck, AlertTriangle, Loader2, Eye, Trash2, Download } from "lucide-react";
+import { FileText, Upload, File as FileIcon, FileSpreadsheet, Presentation, ShieldCheck, AlertTriangle, Loader2, Eye, Trash2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -14,12 +14,15 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { extraireTexte, ACCEPT_INPUT_FILE } from "@/lib/pii";
 import { toast } from "@/hooks/use-toast";
+import { uploadDocumentToRAG } from "@/lib/api";
+import { DocumentValidatorService } from "@/services/DocumentValidatorService";
+import { DocumentMetadata } from "@/types/document";
 
 // --- Helpers ---
 
 const typeIcons: Record<string, React.ElementType> = {
   pdf: FileText,
-  docx: File,
+  docx: FileIcon,
   pptx: Presentation,
   xlsx: FileSpreadsheet,
 };
@@ -83,6 +86,7 @@ const Documents = () => {
 
   const [piiDialogOpen, setPiiDialogOpen] = useState(false);
   const [currentFileName, setCurrentFileName] = useState("");
+  const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<ScannedDocument | null>(null);
 
@@ -103,6 +107,27 @@ const Documents = () => {
     const docId = nextId.current++;
     const fileType = getFileType(file.name);
 
+    // Validate using the shared service
+    const validator = new DocumentValidatorService();
+    const metadata: DocumentMetadata = {
+      documentId: docId.toString(),
+      filename: file.name,
+      mimeType: file.type || "text/plain",
+      sizeBytes: file.size,
+      status: "selected",
+      createdAt: Date.now(),
+    };
+
+    const validation = validator.validate(metadata);
+    if (!validation.valid) {
+      toast({
+        variant: "destructive",
+        title: "Validation échouée",
+        description: validation.errorMessage || "Fichier invalide"
+      });
+      return;
+    }
+
     // Ajouter le document en statut "scanning"
     const newDoc: ScannedDocument = {
       id: docId,
@@ -113,6 +138,7 @@ const Documents = () => {
       entityCount: 0,
       categories: [],
       status: "scanning",
+      indexStatus: "pending"
     };
     setDocuments((prev) => [newDoc, ...prev]);
 
@@ -129,22 +155,24 @@ const Documents = () => {
       }
 
       // 2. Lancer la détection PII
+      const token = localStorage.getItem("lumina_token") || "";
       setCurrentFileName(file.name);
+      setCurrentDocId(docId);
       setPiiDialogOpen(true);
-      const result = await detect(texte);
+      const result = await detect(texte, docId.toString(), token);
 
       // 3. Mettre à jour le document avec les résultats
       setDocuments((prev) =>
         prev.map((d) =>
           d.id === docId
             ? {
-                ...d,
-                entityCount: result.entities.length,
-                categories: [...new Set(result.entities.map((e) => e.entity))],
-                status: result.entities.length > 0 ? "pii-found" : "clean",
-                texteOriginal: texte,
-                detectionResult: result,
-              }
+              ...d,
+              entityCount: result.entities.length,
+              categories: [...new Set(result.entities.map((e) => e.entity))],
+              status: result.entities.length > 0 ? "pii-found" : "clean",
+              texteOriginal: texte,
+              detectionResult: result,
+            }
             : d
         )
       );
@@ -225,7 +253,7 @@ const Documents = () => {
               <Upload className="w-10 h-10 mx-auto text-muted-foreground group-hover:text-primary transition-colors mb-3" />
               <p className="text-sm font-medium text-foreground">{t("docs_drop_zone")}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                PDF, DOCX, PPTX, XLSX, TXT, CSV, MD — Max 50MB par fichier
+                PDF, DOCX, TXT — Max 20MB par fichier
               </p>
             </>
           )}
@@ -291,6 +319,21 @@ const Documents = () => {
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warning/10 text-warning">
                                 {doc.entityCount} PII
                               </span>
+                            </span>
+                          )}
+                          {doc.indexStatus === "pending" && (
+                            <span className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
+                              <Loader2 className="w-3 h-3 animate-spin" /> indexation RAG...
+                            </span>
+                          )}
+                          {doc.indexStatus === "indexed" && (
+                            <span className="flex items-center gap-1 text-[10px] text-success mt-1">
+                              <ShieldCheck className="w-3 h-3" /> indexé RAG
+                            </span>
+                          )}
+                          {doc.indexStatus === "failed" && (
+                            <span className="flex items-center gap-1 text-[10px] text-destructive mt-1">
+                              <AlertTriangle className="w-3 h-3" /> échec indexation
                             </span>
                           )}
                         </td>
@@ -360,12 +403,72 @@ const Documents = () => {
           isLoading={piiLoading}
           loadProgress={loadProgress}
           fileName={currentFileName}
-          onConfirm={(anonymizedText) => {
-            toast({
-              title: "Analyse terminée",
-              description: `${lastResult?.entities.length ?? 0} donnée(s) sensible(s) détectée(s) dans "${currentFileName}"`,
-            });
-            setPiiDialogOpen(false);
+          onConfirm={async (anonymizedText) => {
+            if (currentDocId === null) {
+              setPiiDialogOpen(false);
+              return;
+            }
+
+            try {
+              toast({ title: "Envoi au serveur", description: "Transfert sécurisé du document en cours..." });
+
+              const fileToUpload = new File([anonymizedText], `${currentFileName.replace(/\.[^.]+$/, "")}-anonymized.txt`, { type: "text/plain" });
+              const response = await uploadDocumentToRAG(fileToUpload);
+
+              setDocuments((prev) =>
+                prev.map((d) =>
+                  d.id === currentDocId
+                    ? { ...d, backendDocId: response.doc_id, indexStatus: "pending" as const }
+                    : d
+                )
+              );
+
+              toast({
+                title: "Analyse et transfert terminés",
+                description: `${lastResult?.entities.length ?? 0} donnée(s) sensible(s) détectée(s) et document importé au système RAG`,
+              });
+
+              // Start polling
+              const docIdToPoll = response.doc_id;
+              const pollInterval = setInterval(async () => {
+                try {
+                  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+                  const token = localStorage.getItem("lumina_token");
+                  const statusRes = await fetch(`${API_URL}/api/documents/${docIdToPoll}/status`, {
+                    headers: token ? { "Authorization": `Bearer ${token}` } : {}
+                  });
+                  if (statusRes.ok) {
+                    const statusData = await statusRes.json();
+                    if (statusData.status === "indexed" || statusData.status === "failed") {
+                      clearInterval(pollInterval);
+                      setDocuments(prev => prev.map(d =>
+                        (d.backendDocId === statusData.doc_id || d.backendDocId === statusData.id || d.backendDocId === docIdToPoll)
+                          ? { ...d, indexStatus: statusData.status }
+                          : d
+                      ));
+                      if (statusData.status === "indexed") {
+                        toast({ title: "Base de connaissance", description: "Le document est prêt pour l'IA" });
+                      }
+                    }
+                  }
+                } catch (e) {
+                  console.error("Polling error", e);
+                }
+              }, 3000);
+
+            } catch (err: any) {
+              console.error(err);
+              setDocuments((prev) =>
+                prev.map((d) =>
+                  d.id === currentDocId
+                    ? { ...d, indexStatus: "failed" as const, backendError: "Erreur envoi" }
+                    : d
+                )
+              );
+              toast({ variant: "destructive", title: "Erreur serveur", description: "Le document n'a pas pu être envoyé au RAG." });
+            } finally {
+              setPiiDialogOpen(false);
+            }
           }}
           onCancel={() => setPiiDialogOpen(false)}
         />

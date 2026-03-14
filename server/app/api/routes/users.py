@@ -4,6 +4,7 @@ from typing import List
 from app.db.database import get_db
 from app.models.users import User
 from app.api.schemas.users import UserCreate, UserUpdate, User as UserSchema
+from app.api.core.security import get_password_hash
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
     
     db_user = User(
         email=user_in.email,
-        password_hash=user_in.password,
+        password_hash=get_password_hash(user_in.password),
         first_name=user_in.first_name,
         last_name=user_in.last_name,
         job_function=user_in.job_function,
