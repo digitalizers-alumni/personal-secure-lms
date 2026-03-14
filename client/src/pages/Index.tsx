@@ -60,8 +60,8 @@ const Index = () => {
           </motion.div>
           <motion.div variants={item}>
             <StatCard
-              title="Rôle actuel"
-              value={role === "admin" ? "Administrateur" : "Utilisateur"}
+              title={t("dash_current_role")}
+              value={role === "admin" ? t("dash_admin_role") : t("dash_user_role")}
               change=""
               changeType="neutral"
               icon={Shield}
@@ -91,7 +91,7 @@ const Index = () => {
                 <div>
                   <p className="text-base font-semibold text-foreground">{t("nav_documents")}</p>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Uploader et analyser des documents avec détection PII
+                    {t("dash_quick_upload_desc")}
                   </p>
                 </div>
               </div>

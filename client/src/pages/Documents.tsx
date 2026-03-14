@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
-import { FileText, Upload, File as FileIcon, FileSpreadsheet, Presentation, ShieldCheck, AlertTriangle, Loader2, Eye, Trash2, Download } from "lucide-react";
+import { FileText, Upload, File as FileIcon, FileSpreadsheet, Presentation, ShieldCheck, AlertTriangle, Loader2, Eye, Trash2, Download, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useDocuments, type ScannedDocument } from "@/contexts/DocumentContext";
@@ -89,6 +90,8 @@ const Documents = () => {
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<ScannedDocument | null>(null);
+  const [showPromptAI, setShowPromptAI] = useState(false);
+  const navigate = useNavigate();
 
   /** Exporte le document tokenise (texte original avec PII remplaces par [[PII_XXX]]) */
   const exportPipelineOutput = useCallback((doc: ScannedDocument) => {
@@ -204,7 +207,7 @@ const Documents = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="p-6 lg:p-8 pt-20 lg:pt-24 max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -214,16 +217,32 @@ const Documents = () => {
           <div>
             <h1 className="text-3xl font-bold text-foreground">{t("docs_title")}</h1>
             <p className="text-muted-foreground mt-1">
-              Importez un document pour analyser et détecter les données sensibles (PII)
+              {t("docs_subtitle")}
             </p>
           </div>
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            className="gradient-primary text-primary-foreground gap-2 shadow-md hover:shadow-lg transition-shadow"
-          >
-            <Upload className="w-4 h-4" />
-            {t("docs_import")}
-          </Button>
+          <div className="flex items-center gap-3">
+            {showPromptAI && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                <Button
+                  onClick={() => navigate("/ai-prompt")}
+                  className="bg-red-600 hover:bg-red-700 text-white gap-2 shadow-lg glow-red font-bold"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Prompt AI
+                </Button>
+              </motion.div>
+            )}
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              className="gradient-primary text-primary-foreground gap-2 shadow-md hover:shadow-lg transition-shadow"
+            >
+              <Upload className="w-4 h-4" />
+              {t("docs_import")}
+            </Button>
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -246,14 +265,14 @@ const Documents = () => {
           {isExtracting ? (
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="w-10 h-10 text-primary animate-spin" />
-              <p className="text-sm font-medium text-foreground">Extraction du texte en cours...</p>
+              <p className="text-sm font-medium text-foreground">{t("docs_extracting")}</p>
             </div>
           ) : (
             <>
               <Upload className="w-10 h-10 mx-auto text-muted-foreground group-hover:text-primary transition-colors mb-3" />
               <p className="text-sm font-medium text-foreground">{t("docs_drop_zone")}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                PDF, DOCX, TXT — Max 20MB par fichier
+                {t("docs_drop_subtitle")}
               </p>
             </>
           )}
@@ -269,19 +288,19 @@ const Documents = () => {
           >
             <div className="px-4 py-3 border-b border-border">
               <h2 className="text-sm font-semibold text-foreground">
-                Documents analysés ({documents.length})
+                {t("docs_analyzed")} ({documents.length})
               </h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Document</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Taille</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Statut PII</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Catégories</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("col_document")}</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("col_size")}</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("docs_status_pii")}</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("docs_categories")}</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("docs_date")}</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("docs_actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -304,36 +323,36 @@ const Documents = () => {
                         <td className="py-3 px-4">
                           {doc.status === "scanning" && (
                             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Loader2 className="w-3 h-3 animate-spin" /> Analyse...
+                              <Loader2 className="w-3 h-3 animate-spin" /> {t("docs_scanning_label")}
                             </span>
                           )}
                           {doc.status === "clean" && (
                             <span className="flex items-center gap-1.5">
                               <ShieldCheck className="w-3.5 h-3.5 text-success" />
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/10 text-success">Aucun PII</span>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/10 text-success">{t("docs_no_pii")}</span>
                             </span>
                           )}
                           {doc.status === "pii-found" && (
                             <span className="flex items-center gap-1.5">
                               <AlertTriangle className="w-3.5 h-3.5 text-warning" />
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warning/10 text-warning">
-                                {doc.entityCount} PII
+                                {t("docs_pii_count").replace("{n}", String(doc.entityCount))}
                               </span>
                             </span>
                           )}
                           {doc.indexStatus === "pending" && (
                             <span className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
-                              <Loader2 className="w-3 h-3 animate-spin" /> indexation RAG...
+                              <Loader2 className="w-3 h-3 animate-spin" /> {t("docs_rag_indexing")}
                             </span>
                           )}
                           {doc.indexStatus === "indexed" && (
                             <span className="flex items-center gap-1 text-[10px] text-success mt-1">
-                              <ShieldCheck className="w-3 h-3" /> indexé RAG
+                              <ShieldCheck className="w-3 h-3" /> {t("docs_rag_indexed")}
                             </span>
                           )}
                           {doc.indexStatus === "failed" && (
                             <span className="flex items-center gap-1 text-[10px] text-destructive mt-1">
-                              <AlertTriangle className="w-3 h-3" /> échec indexation
+                              <AlertTriangle className="w-3 h-3" /> {t("docs_rag_failed")}
                             </span>
                           )}
                         </td>
@@ -355,7 +374,7 @@ const Documents = () => {
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-primary"
                                 onClick={() => setPreviewDoc(doc)}
-                                title="Prévisualiser"
+                                title={t("preview")}
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </Button>
@@ -365,7 +384,7 @@ const Documents = () => {
                               size="icon"
                               className="h-7 w-7 text-muted-foreground hover:text-destructive"
                               onClick={() => setDocuments((prev) => prev.filter((d) => d.id !== doc.id))}
-                              title="Supprimer"
+                              title={t("delete")}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
@@ -390,7 +409,7 @@ const Documents = () => {
           >
             <ShieldCheck className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
             <p className="text-sm text-muted-foreground">
-              Aucun document analysé. Importez un fichier pour lancer la détection PII.
+              {t("docs_empty_state")}
             </p>
           </motion.div>
         )}
@@ -410,7 +429,7 @@ const Documents = () => {
             }
 
             try {
-              toast({ title: "Envoi au serveur", description: "Transfert sécurisé du document en cours..." });
+              toast({ title: t("docs_saving_server"), description: t("docs_saving_desc") });
 
               const fileToUpload = new File([anonymizedText], `${currentFileName.replace(/\.[^.]+$/, "")}-anonymized.txt`, { type: "text/plain" });
               const response = await uploadDocumentToRAG(fileToUpload);
@@ -430,9 +449,11 @@ const Documents = () => {
               );
 
               toast({
-                title: "Analyse et transfert terminés",
-                description: `${lastResult?.entities.length ?? 0} donnée(s) sensible(s) détectée(s) et document importé au système RAG`,
+                title: t("docs_save_success"),
+                description: t("docs_save_success_desc").replace("{n}", String(lastResult?.entities.length ?? 0)),
               });
+
+              setShowPromptAI(true);
 
               // Start polling
               const docIdToPoll = response.doc_id;
@@ -452,7 +473,7 @@ const Documents = () => {
                           : d
                       ));
                       if (statusData.status === "indexed") {
-                        toast({ title: "Base de connaissance", description: "Le document est prêt pour l'IA" });
+                        toast({ title: "Base de connaissance", description: t("docs_ready_for_ai") });
                       }
                     }
                   }
@@ -470,7 +491,7 @@ const Documents = () => {
                     : d
                 )
               );
-              toast({ variant: "destructive", title: "Erreur serveur", description: "Le document n'a pas pu être envoyé au RAG." });
+              toast({ variant: "destructive", title: t("docs_server_error"), description: t("docs_server_error_desc") });
             } finally {
               setPiiDialogOpen(false);
             }
@@ -488,8 +509,8 @@ const Documents = () => {
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
                 {previewDoc?.entityCount
-                  ? `${previewDoc.entityCount} donnée(s) sensible(s) remplacée(s) par des tokens`
-                  : "Aucune donnée sensible détectée"}
+                  ? t("docs_preview_pii_replaced").replace("{n}", String(previewDoc.entityCount))
+                  : t("docs_preview_no_pii")}
               </DialogDescription>
             </DialogHeader>
 
@@ -508,10 +529,10 @@ const Documents = () => {
                 onClick={() => previewDoc && exportPipelineOutput(previewDoc)}
               >
                 <Download className="w-4 h-4" />
-                Exporter tokenise
+                {t("docs_export_tokenized")}
               </Button>
               <Button variant="outline" onClick={() => setPreviewDoc(null)}>
-                Fermer
+                {t("close")}
               </Button>
             </DialogFooter>
           </DialogContent>

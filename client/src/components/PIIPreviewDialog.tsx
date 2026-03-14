@@ -21,33 +21,34 @@ interface PIIPreviewDialogProps {
   fileName?: string;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  PER: "Personne",
-  ORG: "Organisation",
-  LOC: "Lieu",
-  MISC: "Divers",
-  EMAIL: "Email",
-  TELEPHONE: "Téléphone",
-  IBAN: "IBAN",
-  SECU: "N° Sécu",
-  AVS: "N° AVS",
-  DATE: "Date",
-  MONTANT: "Montant",
-  ADRESSE: "Adresse",
-  URL: "URL",
-  ADRESSE_IP: "Adresse IP",
-  SIRET_SIREN: "SIRET/SIREN",
-  CNI: "CNI",
-  URSSAF: "URSSAF",
-  MUTUELLE: "Mutuelle",
-  REFERENCE: "Référence",
-  CODE_POSTAL: "Code postal",
-  IDE: "IDE",
-  DATE_NAISSANCE: "Date naissance",
+const CATEGORY_KEYS: Record<string, string> = {
+  PER: "person",
+  ORG: "organization",
+  LOC: "location",
+  MISC: "misc",
+  EMAIL: "email",
+  TELEPHONE: "phone",
+  IBAN: "iban",
+  SECU: "social_security",
+  AVS: "avs",
+  DATE: "date",
+  MONTANT: "amount",
+  ADRESSE: "address",
+  URL: "url",
+  ADRESSE_IP: "ip_address",
+  SIRET_SIREN: "siret_siren",
+  CNI: "cni",
+  URSSAF: "urssaf",
+  MUTUELLE: "mutuelle",
+  REFERENCE: "reference",
+  CODE_POSTAL: "zip_code",
+  IDE: "ide",
+  DATE_NAISSANCE: "birth_date",
 };
 
-function getCategoryLabel(cat: string): string {
-  return CATEGORY_LABELS[cat] || cat;
+function getCategoryLabel(cat: string, t: (k: string) => string): string {
+  const key = CATEGORY_KEYS[cat];
+  return key ? t(key) : cat;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -77,12 +78,12 @@ const PIIPreviewDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-foreground">
             <ShieldCheck className="w-5 h-5 text-primary" />
-            Analyse PII
+            {t("pii_analysis_title")}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {fileName
-              ? `Analyse de « ${fileName} » avant envoi`
-              : "Vérification des données sensibles avant traitement"}
+              ? t("pii_analysis_desc").replace("{name}", fileName)
+              : t("pii_verification_desc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -90,7 +91,7 @@ const PIIPreviewDialog = ({
           <div className="space-y-3 py-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Chargement du modèle NER…
+              {t("pii_loading_model")}
             </div>
             <Progress value={loadProgress} className="h-2" />
             <p className="text-xs text-muted-foreground">{loadProgress}%</p>
@@ -108,8 +109,8 @@ const PIIPreviewDialog = ({
               )}
               <p className="text-sm text-foreground">
                 {entityCount > 0
-                  ? `${entityCount} donnée(s) sensible(s) détectée(s)`
-                  : "Aucune donnée sensible détectée ✓"}
+                  ? t("pii_entities_detected").replace("{n}", String(entityCount))
+                  : t("pii_no_entities")}
               </p>
             </div>
 
@@ -124,7 +125,7 @@ const PIIPreviewDialog = ({
                       variant="outline"
                       className={`${getCategoryColor(cat)} text-xs`}
                     >
-                      {getCategoryLabel(cat)} ({count})
+                      {getCategoryLabel(cat, t)} ({count})
                     </Badge>
                   );
                 })}
@@ -146,7 +147,7 @@ const PIIPreviewDialog = ({
                       {showOriginal ? e.word : `[[PII_${String(i + 1).padStart(3, '0')}]]`}
                     </span>
                     <span className="text-muted-foreground">
-                      {getCategoryLabel(e.entity)} · {Math.round(e.score * 100)}%
+                      {getCategoryLabel(e.entity, t)} · {Math.round(e.score * 100)}%
                     </span>
                   </motion.div>
                 ))}
@@ -162,7 +163,7 @@ const PIIPreviewDialog = ({
                 onClick={() => setShowOriginal(!showOriginal)}
               >
                 {showOriginal ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                {showOriginal ? "Masquer les originaux" : "Voir les originaux"}
+                {showOriginal ? t("pii_hide_originals") : t("pii_view_originals")}
               </Button>
             )}
           </div>
@@ -170,7 +171,7 @@ const PIIPreviewDialog = ({
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onCancel}>
-            Annuler
+            {t("cancel")}
           </Button>
           <Button
             onClick={() => result && onConfirm(result.anonymizedText)}
@@ -178,7 +179,7 @@ const PIIPreviewDialog = ({
             className="gradient-primary text-primary-foreground gap-2"
           >
             <ShieldCheck className="w-4 h-4" />
-            {entityCount > 0 ? "Envoyer anonymisé" : "Envoyer"}
+            {entityCount > 0 ? t("pii_send_anonymized") : t("pii_send_anyway")}
           </Button>
         </DialogFooter>
       </DialogContent>

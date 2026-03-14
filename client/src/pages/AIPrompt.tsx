@@ -128,8 +128,8 @@ const AIPrompt = () => {
       console.error(e);
       toast({
         variant: "destructive",
-        title: "Erreur de génération",
-        description: e.message || "Impossible de générer une réponse."
+        title: t("ai_generation_error"),
+        description: e.message || t("ai_generation_fail_desc")
       });
     } finally {
       setIsSending(false);
@@ -218,7 +218,7 @@ const AIPrompt = () => {
                       {doc.status === "pii-found" && (
                         <span className="flex items-center gap-1 text-xs text-warning">
                           <AlertTriangle className="w-3.5 h-3.5" />
-                          {doc.entityCount} PII
+                          {t("docs_pii_count").replace("{n}", String(doc.entityCount))}
                         </span>
                       )}
                     </div>
@@ -277,7 +277,7 @@ const AIPrompt = () => {
           >
             <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
-              Réponse
+              {t("ai_answer_title")}
             </h2>
             <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
               {generationResult.answer}
@@ -286,7 +286,7 @@ const AIPrompt = () => {
             {generationResult.sources.length > 0 && (
               <div className="pt-4 border-t border-border/50 space-y-3">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Sources utilisées
+                  {t("ai_sources_used")}
                 </h3>
                 <ScrollArea className="h-[150px]">
                   <div className="space-y-2 pr-4">

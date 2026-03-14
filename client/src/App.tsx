@@ -13,6 +13,7 @@ import Index from "./pages/Index";
 import Documents from "./pages/Documents";
 import AIPrompt from "./pages/AIPrompt";
 import NotFound from "./pages/NotFound";
+import { LanguageSelector } from "./components/LanguageSelector";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
       <RoleProvider>
         <LanguageProvider>
           <DocumentProvider>
+            <LanguageSelector />
             <Toaster />
             <Sonner />
             <BrowserRouter
