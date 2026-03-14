@@ -1,4 +1,5 @@
 from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, List
 
 class Settings(BaseSettings):
@@ -12,15 +13,12 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./data/rag_lms.db"
     
-    # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:8080", "http://localhost:5173"]
+    # CORS — accept comma-separated string from .env
+    CORS_ORIGINS: str = "http://localhost:8080,http://localhost:5173"
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def assemble_cors_origins(cls, v: str | List[str]) -> List[str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        return v
+    @property
+    def cors_origins_list(self) -> List[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
     # Configuration du prompt Atlas
     ATLAS_SYSTEM_PROMPT: str = (

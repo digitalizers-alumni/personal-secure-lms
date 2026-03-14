@@ -8,6 +8,7 @@ from app.api.routes.users import router as users_router
 from app.api.routes.courses import router as courses_router
 from app.api.routes.auth import router as auth_router
 from app.db.database import init_db
+from app.api.core.config import settings
 from app.rag.embedder import embedder
 from app.api.routes.generate import router as generate_router
 from app.api.core.security import get_current_user
@@ -38,7 +39,7 @@ app = FastAPI(
 # Configuration CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.cors_origins_list,
     allow_methods=["*"],
     allow_headers=["*"],
 )
