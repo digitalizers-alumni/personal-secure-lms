@@ -93,6 +93,7 @@ services:
       - HUGGINGFACE_HOME=/app/data/models
       - MODEL_CACHE_DIR=/app/data/models
       - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/rag_lms.db}
+      - QDRANT_HOST=qdrant
       # - HUGGINGFACE_HUB_OFFLINE=1         # if bge-m3 is already downloaded on server side
       # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
       # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side

@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useRole } from "@/contexts/RoleContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "@/hooks/use-toast";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_URL } from "@/lib/api";
 
 const Login = () => {
   const navigate = useNavigate();

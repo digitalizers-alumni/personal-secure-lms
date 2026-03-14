@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Loader2,
 } from "lucide-react";
+import SourceCard from "@/components/SourceCard";
 
 // --- Helpers ---
 
@@ -290,13 +291,13 @@ const AIPrompt = () => {
                     {generationResult.sources.map((source, i) => {
                       const sourceDoc = documents.find(d => d.backendDocId === source.doc_id);
                       return (
-                        <div key={i} className="text-xs p-3 rounded-lg bg-background/50 border border-border/50">
-                          <div className="flex items-center justify-between mb-1 text-muted-foreground font-medium">
-                            <span>{sourceDoc?.name || `Doc ID: ${source.doc_id}`}</span>
-                            <span className="opacity-70">Score: {source.score}</span>
-                          </div>
-                          <p className="line-clamp-3 opacity-80">{source.text}</p>
-                        </div>
+                        <SourceCard
+                          key={i}
+                          text={source.text}
+                          docName={sourceDoc?.name || ""}
+                          docId={source.doc_id}
+                          score={source.score}
+                        />
                       );
                     })}
                   </div>

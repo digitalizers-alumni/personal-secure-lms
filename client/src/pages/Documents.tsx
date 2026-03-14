@@ -14,7 +14,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { extraireTexte, ACCEPT_INPUT_FILE } from "@/lib/pii";
 import { toast } from "@/hooks/use-toast";
-import { uploadDocumentToRAG } from "@/lib/api";
+import { uploadDocumentToRAG, API_URL } from "@/lib/api";
 import { DocumentValidatorService } from "@/services/DocumentValidatorService";
 import { DocumentMetadata } from "@/types/document";
 
@@ -432,7 +432,6 @@ const Documents = () => {
               const docIdToPoll = response.doc_id;
               const pollInterval = setInterval(async () => {
                 try {
-                  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
                   const token = localStorage.getItem("lumina_token");
                   const statusRes = await fetch(`${API_URL}/api/documents/${docIdToPoll}/status`, {
                     headers: token ? { "Authorization": `Bearer ${token}` } : {}
