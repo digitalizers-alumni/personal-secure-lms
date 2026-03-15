@@ -1,6 +1,7 @@
-import os
+import os # Re-adding os import
 import logging
-import uuid # Import the uuid module
+import uuid
+import hashlib # Import the hashlib module
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
 from typing import List
@@ -22,7 +23,7 @@ ALLOWED_MIME_TYPES = {
 }
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
-def _save_file(file: UploadFile) -> tuple[str, str]: # Change return type to tuple
+def _save_file(file: UploadFile) -> tuple[str, str, str]: # Change return type to tuple (file_path, mime_type, hash_sha256)
     os.makedirs(STORAGE_DIR, exist_ok=True)
     
     # 1. Check extension
@@ -34,14 +35,14 @@ def _save_file(file: UploadFile) -> tuple[str, str]: # Change return type to tup
         )
     
     # 2. Check MIME type
-    mime_type = file.content_type # Get mime_type here
+    mime_type = file.content_type
     if mime_type not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=415, 
             detail=f"Type MIME '{mime_type}' non supporté pour cette extension."
         )
 
-    # 3. Read content to check size and empty file
+    # 3. Read content to check size, empty file and calculate hash
     content = file.file.read()
     file_size = len(content)
     
@@ -54,6 +55,9 @@ def _save_file(file: UploadFile) -> tuple[str, str]: # Change return type to tup
             detail=f"Fichier trop lourd ({file_size} octets). La limite est de {MAX_FILE_SIZE} octets (50 Mo)."
         )
     
+    # Calculate SHA256 hash
+    hash_sha256 = hashlib.sha256(content).hexdigest()
+
     # Generate a unique filename to prevent collisions
     unique_filename = f"{uuid.uuid4()}_{file.filename}"
     file_path = os.path.join(STORAGE_DIR, unique_filename)
@@ -65,16 +69,36 @@ def _save_file(file: UploadFile) -> tuple[str, str]: # Change return type to tup
         logger.error(f"Erreur lors de l'écriture du fichier : {str(e)}")
         raise HTTPException(status_code=500, detail="Erreur interne lors de la sauvegarde du fichier.")
         
-    return file_path, mime_type # Return both file_path and mime_type
+    return file_path, mime_type, hash_sha256 # Return file_path, mime_type, and hash_sha256
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=201)
 async def upload_document(user_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
-    file_path, mime_type = _save_file(file) # Unpack the tuple
+    file_path, mime_type, hash_sha256 = _save_file(file) # Unpack the tuple
+    
+    # Check for existing document with the same hash for this user
+    existing_doc = db.query(Document).filter(
+        Document.user_id == user_id,
+        Document.hash_sha256 == hash_sha256,
+        Document.is_deleted == False # Only check against non-deleted documents
+    ).first()
+
+    if existing_doc:
+        raise HTTPException(
+            status_code=409, # 409 Conflict
+            detail={
+                "error": "DocumentAlreadyExists",
+                "message": f"Document with hash '{hash_sha256}' (original filename: '{file.filename}') has already been uploaded by this user.",
+                "hash": hash_sha256,
+                "document_id": existing_doc.id # Optionally return the ID of the existing document
+            }
+        )
+
     doc = Document(
         user_id=user_id, 
         filename=file.filename, # Original filename
         file_path=file_path,    # Unique path
         mime_type=mime_type,    # Store mime_type
+        hash_sha256=hash_sha256, # Store hash_sha256
         status="pending"
     )
     db.add(doc)
