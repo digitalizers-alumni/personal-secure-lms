@@ -130,3 +130,16 @@ server/data/
 
 # macOS system files
 .DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# IDEs
+.vscode/
+.idea/
+.zed/
+*.swp
+*.swo
+.project
+.settings/

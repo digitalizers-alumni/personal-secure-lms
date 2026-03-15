@@ -1,6 +1,7 @@
 import os
 import logging
 from app.api.core.security import get_current_user
+from app.models.users import User
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
 from typing import List, Tuple
@@ -79,9 +80,9 @@ def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
 async def upload_document(
     file: UploadFile = File(...), 
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
-    user_id = current_user.get("sub", "unknown")
+    user_id = current_user.email
     file_path, hash_sha256, mime_type, file_size = _save_file(file)
     
     # Extra metadata for the JSON field
@@ -107,21 +108,43 @@ async def upload_document(
     return DocumentUploadResponse(doc_id=doc.id, filename=doc.filename, status=doc.status)
 
 @router.get("/", response_model=List[DocumentStatusResponse])
-async def list_documents(db: Session = Depends(get_db)):
-    return db.query(Document).filter(Document.is_deleted == False).all()
+async def list_documents(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return db.query(Document).filter(
+        Document.user_id == current_user.email, 
+        Document.is_deleted == False
+    ).order_by(Document.created_at.desc()).all()
 
 @router.get("/{doc_id}/status", response_model=DocumentStatusResponse)
-async def get_document_status(doc_id: int, db: Session = Depends(get_db)):
-    doc = db.query(Document).filter(Document.id == doc_id, Document.is_deleted == False).first()
+async def get_document_status(
+    doc_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(
+        Document.id == doc_id, 
+        Document.user_id == current_user.email,
+        Document.is_deleted == False
+    ).first()
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found or deleted")
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
     return doc
 
 @router.delete("/{doc_id}", status_code=204)
-async def delete_document(doc_id: int, db: Session = Depends(get_db)):
-    doc = db.query(Document).filter(Document.id == doc_id, Document.is_deleted == False).first()
+async def delete_document(
+    doc_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(
+        Document.id == doc_id, 
+        Document.user_id == current_user.email,
+        Document.is_deleted == False
+    ).first()
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found or already deleted")
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
     
     # Soft delete in Database
     doc.is_deleted = True

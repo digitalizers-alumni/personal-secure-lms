@@ -29,6 +29,35 @@ export async function uploadDocumentToRAG(file: File): Promise<{ doc_id: number;
   return response.json();
 }
 
+export async function listDocuments(): Promise<Array<{ doc_id: number; filename: string; status: string; created_at: string }>> {
+  const response = await fetch(`${API_URL}/api/documents/`, {
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to fetch documents");
+  }
+
+  return response.json();
+}
+
+export async function deleteDocument(docId: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/documents/${docId}`, {
+    method: "DELETE",
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Deletion failed");
+  }
+}
+
 export async function generateFromRAG(prompt: string, documentIds: number[] = []): Promise<{
   answer: string;
   keywords: string[];

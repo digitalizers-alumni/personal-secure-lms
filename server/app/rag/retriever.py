@@ -1,20 +1,22 @@
 import logging
 from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny
+from typing import List, Optional
+from app.api.core.config import settings
 from app.rag.embedder import embedder
-from app.rag.indexer import QDRANT_HOST, QDRANT_PORT, COLLECTION_NAME
+from app.rag.indexer import COLLECTION_NAME
 
 logger = logging.getLogger(__name__)
 
-client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
 
 
 def search(
     query: str, 
     top_k: int = 5, 
-    user_id: str | None = None, 
-    doc_ids: list[int] | None = None
-) -> list[dict]:
+    user_id: Optional[str] = None, 
+    doc_ids: Optional[List[int]] = None
+) -> List[dict]:
     """
     Embeds the query and retrieves the top_k most relevant chunks from Qdrant.
     Optionally filters by user_id and/or a list of specific doc_ids.

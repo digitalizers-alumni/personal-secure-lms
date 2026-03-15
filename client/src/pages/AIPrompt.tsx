@@ -45,6 +45,7 @@ const AIPrompt = () => {
     answer: string;
     sources: { text: string; doc_id: number; score: number }[];
   } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Seuls les documents indexés avec backendDocId sont sélectionnables
   const readyDocs = useMemo(
@@ -91,6 +92,7 @@ const AIPrompt = () => {
 
     setIsSending(true);
     setGenerationResult(null);
+    setError(null);
 
     // Get the backend doc IDs for the selected items
     const selectedBackendDocIds = readyDocs
@@ -126,10 +128,12 @@ const AIPrompt = () => {
       });
     } catch (e: any) {
       console.error(e);
+      const errorMessage = e.message || t("ai_generation_fail_desc");
+      setError(errorMessage);
       toast({
         variant: "destructive",
         title: t("ai_generation_error"),
-        description: e.message || t("ai_generation_fail_desc")
+        description: errorMessage
       });
     } finally {
       setIsSending(false);
@@ -267,6 +271,21 @@ const AIPrompt = () => {
             </Button>
           </div>
         </motion.div>
+
+        {/* Erreur de génération */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 flex items-start gap-3"
+          >
+            <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-destructive">{t("ai_generation_error")}</h3>
+              <p className="text-xs text-destructive/80 mt-1">{error}</p>
+            </div>
+          </motion.div>
+        )}
 
         {/* Résultat de la génération */}
         {generationResult && (

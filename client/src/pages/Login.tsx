@@ -28,16 +28,15 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      const formData = new URLSearchParams();
-      formData.append("username", username);
-      formData.append("password", password);
-
-      const response = await fetch(`${API_URL}/api/token`, {
+      const response = await fetch(`${API_URL}/api/login`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Type": "application/json",
         },
-        body: formData.toString()
+        body: JSON.stringify({
+          email: username,
+          password: password,
+        }),
       });
 
       if (!response.ok) {

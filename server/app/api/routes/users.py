@@ -4,40 +4,20 @@ from typing import List
 from app.db.database import get_db
 from app.models.users import User
 from app.api.schemas.users import UserCreate, UserUpdate, User as UserSchema
-from app.api.core.security import get_password_hash
+from app.api.core.security import get_password_hash, get_current_user
 
 router = APIRouter()
-
-@router.post("/", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
-def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.email == user_in.email).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    db_user = User(
-        email=user_in.email,
-        password_hash=get_password_hash(user_in.password),
-        first_name=user_in.first_name,
-        last_name=user_in.last_name,
-        job_function=user_in.job_function,
-        user_role=user_in.user_role
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
 
 @router.get("/", response_model=List[UserSchema])
 def list_users(db: Session = Depends(get_db)):
     return db.query(User).filter(User.is_deleted == False).all()
 
 @router.get("/me", response_model=UserSchema)
-def get_my_profile(db: Session = Depends(get_db)):
-    # Simulé : On prend le premier utilisateur pour le MVP sans auth complexe
-    user = db.query(User).filter(User.is_deleted == False).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No users found")
-    return user
+def get_my_profile(current_user: User = Depends(get_current_user)):
+    """
+    Get the profile of the currently authenticated user.
+    """
+    return current_user
 
 @router.get("/{user_id}", response_model=UserSchema)
 def get_user(user_id: str, db: Session = Depends(get_db)):

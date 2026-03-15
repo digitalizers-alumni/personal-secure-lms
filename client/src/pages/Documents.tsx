@@ -13,9 +13,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { extraireTexte, ACCEPT_INPUT_FILE, sauvegarderTableTokens } from "@/lib/pii";
+import { DocumentProcessingOrchestrator } from "@/services/DocumentProcessingOrchestrator";
+import { MetadataStore } from "@/interfaces/MetadataStore";
+import { DocumentStatus } from "@/types/document";
+import { ACCEPT_INPUT_FILE } from "@/lib/pii";
 import { toast } from "@/hooks/use-toast";
-import { uploadDocumentToRAG, API_URL } from "@/lib/api";
+import { uploadDocumentToRAG, deleteDocument, API_URL } from "@/lib/api";
 import { DocumentValidatorService } from "@/services/DocumentValidatorService";
 import { DocumentMetadata } from "@/types/document";
 
@@ -81,14 +84,15 @@ function renderTextWithTokens(texte: string, result: DetectionResult): React.Rea
 
 const Documents = () => {
   const { t } = useLanguage();
-  const { documents, setDocuments, nextId } = useDocuments();
+  const { documents, setDocuments, nextId, isLoading } = useDocuments();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { detect, isLoading: piiLoading, loadProgress, lastResult } = usePIIDetector();
+  const { detect, isLoading: piiLoading, loadProgress, lastResult, saveTokens } = usePIIDetector();
 
   const [piiDialogOpen, setPiiDialogOpen] = useState(false);
   const [currentFileName, setCurrentFileName] = useState("");
   const [currentDocId, setCurrentDocId] = useState<number | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [activePiiResult, setActivePiiResult] = useState<DetectionResult | null>(null);
   const [previewDoc, setPreviewDoc] = useState<ScannedDocument | null>(null);
   const [showPromptAI, setShowPromptAI] = useState(false);
   const navigate = useNavigate();
@@ -110,81 +114,83 @@ const Documents = () => {
     const docId = nextId.current++;
     const fileType = getFileType(file.name);
 
-    // Validate using the shared service
-    const validator = new DocumentValidatorService();
-    const metadata: DocumentMetadata = {
-      documentId: docId.toString(),
-      filename: file.name,
-      mimeType: file.type || "text/plain",
-      sizeBytes: file.size,
-      status: "selected",
-      createdAt: Date.now(),
+    // Adapter for MetadataStore to update the UI state
+    const metadataStore: MetadataStore = {
+      create: (metadata) => {
+        const newDoc: ScannedDocument = {
+          id: Number(metadata.documentId),
+          name: metadata.filename,
+          type: getFileType(metadata.filename).toUpperCase(),
+          size: formatSize(metadata.sizeBytes),
+          scannedAt: new Date(metadata.createdAt).toLocaleString("fr-CH"),
+          entityCount: 0,
+          categories: [],
+          status: "scanning",
+          indexStatus: "pending"
+        };
+        setDocuments((prev) => [newDoc, ...prev]);
+      },
+      updateStatus: (id, status, errorMessage) => {
+        setDocuments((prev) =>
+          prev.map((d) =>
+            d.id === Number(id)
+              ? { ...d, status: status as any, backendError: errorMessage }
+              : d
+          )
+        );
+      },
+      get: (id) => null, // Not needed for this component's flow
+      clear: () => setDocuments([])
     };
 
-    const validation = validator.validate(metadata);
-    if (!validation.valid) {
-      toast({
-        variant: "destructive",
-        title: "Validation échouée",
-        description: validation.errorMessage || "Fichier invalide"
-      });
-      return;
-    }
-
-    // Ajouter le document en statut "scanning"
-    const newDoc: ScannedDocument = {
-      id: docId,
-      name: file.name,
-      type: fileType.toUpperCase(),
-      size: formatSize(file.size),
-      scannedAt: new Date().toLocaleString("fr-CH"),
-      entityCount: 0,
-      categories: [],
-      status: "scanning",
-      indexStatus: "pending"
-    };
-    setDocuments((prev) => [newDoc, ...prev]);
+    const orchestrator = new DocumentProcessingOrchestrator(metadataStore);
 
     try {
-      // 1. Extraire le texte du fichier
       setIsExtracting(true);
-      const texte = await extraireTexte(file);
+      const token = localStorage.getItem("lumina_token") || "";
+      const result = await orchestrator.processFile(file, token, docId.toString());
       setIsExtracting(false);
 
-      if (!texte.trim()) {
-        toast({ variant: "destructive", title: "Fichier vide", description: `Aucun texte extrait de "${file.name}"` });
-        setDocuments((prev) => prev.filter((d) => d.id !== docId));
+      if (!result.success) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: result.error?.message || "Échec du traitement"
+        });
+        if ((result.metadata.status as string) !== "scanning") {
+            setDocuments((prev) => prev.filter((d) => d.id !== docId));
+        }
         return;
       }
 
-      // 2. Lancer la détection PII
-      const token = localStorage.getItem("lumina_token") || "";
-      setCurrentFileName(file.name);
-      setCurrentDocId(docId);
-      setPiiDialogOpen(true);
-      const result = await detect(texte, token);
+      // If PII detection was successful, finalize the UI state
+      if (result.piiResult && result.extractedText) {
+        setCurrentFileName(file.name);
+        setCurrentDocId(docId);
+        setActivePiiResult(result.piiResult);
+        setPiiDialogOpen(true);
 
-      // 3. Mettre à jour le document avec les résultats
-      setDocuments((prev) =>
-        prev.map((d) =>
-          d.id === docId
-            ? {
-              ...d,
-              entityCount: result.entities.length,
-              categories: [...new Set(result.entities.map((e) => e.entity))],
-              status: result.entities.length > 0 ? "pii-found" : "clean",
-              texteOriginal: texte,
-              detectionResult: result,
-            }
-            : d
-        )
-      );
+        setDocuments((prev) =>
+          prev.map((d) =>
+            d.id === docId
+              ? {
+                ...d,
+                entityCount: result.piiResult!.entities.length,
+                categories: [...new Set(result.piiResult!.entities.map((e) => e.entity))],
+                status: result.piiResult!.entities.length > 0 ? "pii-found" : "clean",
+                texteOriginal: result.extractedText!,
+                detectionResult: result.piiResult!,
+              }
+              : d
+          )
+        );
+      }
     } catch (err: any) {
       setIsExtracting(false);
       toast({ variant: "destructive", title: "Erreur", description: err.message || "Impossible de traiter le fichier" });
       setDocuments((prev) => prev.filter((d) => d.id !== docId));
     }
-  }, [detect]);
+  }, [setDocuments, nextId]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -379,15 +385,26 @@ const Documents = () => {
                                 <Eye className="w-3.5 h-3.5" />
                               </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => setDocuments((prev) => prev.filter((d) => d.id !== doc.id))}
-                              title={t("delete")}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                             <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                onClick={async () => {
+                                  const idToDelete = doc.backendDocId || doc.id;
+                                  try {
+                                    if (doc.backendDocId) {
+                                      await deleteDocument(doc.backendDocId);
+                                    }
+                                    setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+                                    toast({ title: t("delete_success") || "Document supprimé" });
+                                  } catch (err) {
+                                    toast({ variant: "destructive", title: "Erreur", description: "Échec de la suppression" });
+                                  }
+                                }}
+                                title={t("delete")}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
                           </div>
                         </td>
                       </tr>
@@ -399,8 +416,8 @@ const Documents = () => {
           </motion.div>
         )}
 
-        {/* Empty state */}
-        {documents.length === 0 && (
+        {/* Empty state or Loading */}
+        {documents.length === 0 && !isLoading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -414,53 +431,67 @@ const Documents = () => {
           </motion.div>
         )}
 
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <p className="text-sm text-muted-foreground">Chargement de vos documents...</p>
+          </div>
+        )}
+
         {/* PII Preview Dialog (pendant l'analyse) */}
         <PIIPreviewDialog
           open={piiDialogOpen}
           onOpenChange={setPiiDialogOpen}
-          result={lastResult}
+          result={activePiiResult}
           isLoading={piiLoading}
           loadProgress={loadProgress}
           fileName={currentFileName}
           onConfirm={async (anonymizedText) => {
-            if (currentDocId === null) {
+            if (currentDocId === null || !activePiiResult) {
               setPiiDialogOpen(false);
               return;
             }
 
             try {
               toast({ title: t("docs_saving_server"), description: t("docs_saving_desc") });
-
-              const fileToUpload = new File([anonymizedText], `${currentFileName.replace(/\.[^.]+$/, "")}-anonymized.txt`, { type: "text/plain" });
-              const response = await uploadDocumentToRAG(fileToUpload);
-
-              // 2. Sauvegarder la table des tokens PII en utilisant le VRAI doc_id du backend
-              if (lastResult?.chiffre) {
-                  const token = localStorage.getItem("lumina_token") || "";
-                  await sauvegarderTableTokens(response.doc_id.toString(), lastResult.chiffre);
-              }
+              
+              const orchestrator = new DocumentProcessingOrchestrator({
+                create: () => {},
+                updateStatus: () => {},
+                get: () => null,
+                clear: () => {}
+              });
+              
+              // 1. Ingest & Save tokens via orchestrator (Consolidated)
+              const { doc_id } = await orchestrator.ingestFile(
+                currentDocId.toString(), 
+                currentFileName, 
+                anonymizedText, 
+                activePiiResult.chiffre,
+                activePiiResult.entities.length,
+                [...new Set(activePiiResult.entities.map((e) => e.entity))]
+              );
 
               setDocuments((prev) =>
                 prev.map((d) =>
                   d.id === currentDocId
-                    ? { ...d, backendDocId: response.doc_id, indexStatus: "pending" as const }
+                    ? { ...d, backendDocId: Number(doc_id), indexStatus: "pending" as const }
                     : d
                 )
               );
 
               toast({
                 title: t("docs_save_success"),
-                description: t("docs_save_success_desc").replace("{n}", String(lastResult?.entities.length ?? 0)),
+                description: t("docs_save_success_desc").replace("{n}", String(activePiiResult.entities.length ?? 0)),
               });
 
               setShowPromptAI(true);
 
               // Start polling
-              const docIdToPoll = response.doc_id;
               const pollInterval = setInterval(async () => {
                 try {
                   const token = localStorage.getItem("lumina_token");
-                  const statusRes = await fetch(`${API_URL}/api/documents/${docIdToPoll}/status`, {
+                  const statusRes = await fetch(`${API_URL}/api/documents/${doc_id}/status`, {
                     headers: token ? { "Authorization": `Bearer ${token}` } : {}
                   });
                   if (statusRes.ok) {
@@ -468,7 +499,7 @@ const Documents = () => {
                     if (statusData.status === "indexed" || statusData.status === "failed") {
                       clearInterval(pollInterval);
                       setDocuments(prev => prev.map(d =>
-                        (d.backendDocId === statusData.doc_id || d.backendDocId === statusData.id || d.backendDocId === docIdToPoll)
+                        (d.backendDocId === Number(statusData.doc_id) || d.backendDocId === Number(statusData.id) || d.backendDocId === Number(doc_id))
                           ? { ...d, indexStatus: statusData.status }
                           : d
                       ));

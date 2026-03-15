@@ -22,7 +22,9 @@ class Base(DeclarativeBase):
 
 def init_db():
     # Avoiding circular import
-    import app.models.document_schema                           
+    from app.models.documents import Document
+    from app.models.users import User
+    from app.models.courses import Course
     """Create all tables on startup if they don't exist"""
     Base.metadata.create_all(bind=engine)
     logger.info("Database initialized")

@@ -4,6 +4,9 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import ValidationError
+from sqlalchemy.orm import Session
+from app.db.database import get_db
+from app.models.users import User
 from app.api.core.config import settings
 
 # Wait, I saw PyJWT in requirements, butjose is often used with FastAPI. 
@@ -45,13 +48,35 @@ def decode_token(token: str) -> dict:
             detail="Could not validate credentials",
         )
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
-    """Dependency to get the current authenticated user from JWT"""
-    return decode_token(token)
+def get_current_user(
+    db: Session = Depends(get_db),
+    token: str = Depends(oauth2_scheme)
+) -> User:
+    """Dependency to resolve the actual database user from JWT"""
+    payload = decode_token(token)
+    email: str = payload.get("sub")
+    if email is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+        )
+    
+    user = db.query(User).filter(User.email == email).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    if not user.is_active or user.is_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user",
+        )
+    return user
 
-def get_admin_user(current_user: dict = Depends(get_current_user)) -> dict:
+def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
     """Dependency to ensure the current user has the ADMIN role"""
-    if current_user.get("role") != "admin":
+    if current_user.user_role.value != "ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user does not have enough privileges",

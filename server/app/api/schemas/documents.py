@@ -25,7 +25,8 @@ class DocumentStatusResponse(BaseModel):
     filename: str
     status: str
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
+    metadata_json: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True

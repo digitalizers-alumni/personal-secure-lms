@@ -1,4 +1,5 @@
 import logging
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from app.api.schemas.llm import LLMRequest, LLMResponse
@@ -16,30 +17,31 @@ class ChunkSource(BaseModel):
 
 class GenerateRequest(BaseModel):
     prompt: str = Field(..., description="The query/instruction from the user")
-    user_id: str | None = None
-    doc_ids: list[int] | None = None
+    user_id: Optional[str] = None
+    doc_ids: Optional[List[int]] = None
 
 
 class GenerateResponse(BaseModel):
     answer: str
-    keywords: list[str]
-    sources: list[ChunkSource]
+    keywords: List[str]
+    sources: List[ChunkSource]
 
 
+from app.models.users import User
 from app.api.core.security import get_current_user
 from fastapi import APIRouter, HTTPException, Depends
 
 @router.post("/generate", response_model=GenerateResponse)
 async def generate(
     request: GenerateRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Low-level generation endpoint.
     Runs the full RAG pipeline and returns an LLM-augmented answer.
     """
     try:
-        user_id = current_user.get("sub", "unknown")
+        user_id = current_user.email
         result = await run_rag_pipeline(
             prompt=request.prompt,
             user_id=user_id,

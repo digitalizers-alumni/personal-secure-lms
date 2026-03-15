@@ -1,4 +1,5 @@
 import logging
+from typing import List, Optional
 from app.rag.retriever import search
 from app.services.llm_service import llm_service
 
@@ -25,8 +26,8 @@ Answer:"""
 
 async def run_rag_pipeline(
     prompt: str, 
-    user_id: str | None = None, 
-    doc_ids: list[int] | None = None
+    user_id: Optional[str] = None, 
+    doc_ids: Optional[List[int]] = None
 ) -> dict:
     """
     Full RAG pipeline:

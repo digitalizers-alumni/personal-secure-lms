@@ -40,6 +40,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -59,6 +60,13 @@ app.include_router(
     generate_router, 
     prefix="/api", 
     tags=["Generate"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    users_router,
+    prefix="/api/users",
+    tags=["Users"],
     dependencies=[Depends(get_current_user)]
 )
 

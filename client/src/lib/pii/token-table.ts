@@ -61,7 +61,9 @@ async function ouvrirBaseDeDonnees(): Promise<IDBPDatabase<PIIPrivacyDB>> {
  */
 export async function sauvegarderTableTokens(
   documentId: string,
-  chiffre: CarteTokensChiffree
+  chiffre: CarteTokensChiffree,
+  entityCount?: number,
+  categories?: string[]
 ): Promise<void> {
   const db = await ouvrirBaseDeDonnees();
 
@@ -71,6 +73,8 @@ export async function sauvegarderTableTokens(
     iv: chiffre.iv,
     sel: chiffre.sel,
     creeA: new Date(),
+    entityCount,
+    categories,
   });
 }
 

@@ -24,12 +24,13 @@ export interface DetectionResult {
 }
 
 interface UsePIIDetectorReturn {
-  detect: (text: string, jwt?: string) => Promise<DetectionResult>;
+  detect: (text: string, jwt?: string, backendDocId?: string) => Promise<DetectionResult>;
   isLoading: boolean;
   modelReady: boolean;
   loadProgress: number;
   lastResult: DetectionResult | null;
   preloadModel: () => Promise<void>;
+  saveTokens: (backendDocId: string, customChiffre?: CarteTokensChiffree) => Promise<void>;
 }
 
 /** Convert new EntitePII[] to legacy format for PIIPreviewDialog */
@@ -77,16 +78,23 @@ export function usePIIDetector(): UsePIIDetectorReturn {
     }
   }, []);
 
-  const detect = useCallback(async (text: string, jwt?: string) => {
+  const detect = useCallback(async (text: string, jwt?: string, backendDocId?: string) => {
     setIsLoading(true);
     try {
       const entites = await détecterPII(text, (p) => setLoadProgress(p));
       const result = convertToLegacy(text, entites);
       
+      let tableToSave: CarteTokensChiffree | undefined;
+
       if (jwt) {
         // Generate the encrypted token table if we have a valid user token
         const piiResult = await traiterDocument(text, entites, jwt);
         result.chiffre = piiResult.chiffre;
+        tableToSave = piiResult.chiffre;
+      }
+      
+      if (backendDocId && tableToSave) {
+        await sauvegarderTableTokens(backendDocId, tableToSave);
       }
       
       setLastResult(result);
@@ -97,5 +105,14 @@ export function usePIIDetector(): UsePIIDetectorReturn {
     }
   }, []);
 
-  return { detect, isLoading, modelReady, loadProgress, lastResult, preloadModel };
+  const saveTokens = useCallback(async (backendDocId: string, customChiffre?: CarteTokensChiffree) => {
+    const tableToSave = customChiffre || lastResult?.chiffre;
+    if (!tableToSave) {
+      console.warn("No token table available to save");
+      return;
+    }
+    await sauvegarderTableTokens(backendDocId, tableToSave);
+  }, [lastResult]);
+
+  return { detect, isLoading, modelReady, loadProgress, lastResult, preloadModel, saveTokens };
 }
