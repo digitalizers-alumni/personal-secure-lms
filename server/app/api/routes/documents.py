@@ -1,5 +1,6 @@
 import os
 import logging
+import uuid # Import the uuid module
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
 from typing import List
@@ -21,7 +22,7 @@ ALLOWED_MIME_TYPES = {
 }
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
-def _save_file(file: UploadFile) -> str:
+def _save_file(file: UploadFile) -> tuple[str, str]: # Change return type to tuple
     os.makedirs(STORAGE_DIR, exist_ok=True)
     
     # 1. Check extension
@@ -33,10 +34,11 @@ def _save_file(file: UploadFile) -> str:
         )
     
     # 2. Check MIME type
-    if file.content_type not in ALLOWED_MIME_TYPES:
+    mime_type = file.content_type # Get mime_type here
+    if mime_type not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=415, 
-            detail=f"Type MIME '{file.content_type}' non supporté pour cette extension."
+            detail=f"Type MIME '{mime_type}' non supporté pour cette extension."
         )
 
     # 3. Read content to check size and empty file
@@ -51,8 +53,11 @@ def _save_file(file: UploadFile) -> str:
             status_code=413, 
             detail=f"Fichier trop lourd ({file_size} octets). La limite est de {MAX_FILE_SIZE} octets (50 Mo)."
         )
-
-    file_path = os.path.join(STORAGE_DIR, file.filename)
+    
+    # Generate a unique filename to prevent collisions
+    unique_filename = f"{uuid.uuid4()}_{file.filename}"
+    file_path = os.path.join(STORAGE_DIR, unique_filename)
+    
     try:
         with open(file_path, "wb") as f:
             f.write(content)
@@ -60,12 +65,18 @@ def _save_file(file: UploadFile) -> str:
         logger.error(f"Erreur lors de l'écriture du fichier : {str(e)}")
         raise HTTPException(status_code=500, detail="Erreur interne lors de la sauvegarde du fichier.")
         
-    return file_path
+    return file_path, mime_type # Return both file_path and mime_type
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=201)
 async def upload_document(user_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
-    file_path = _save_file(file)
-    doc = Document(user_id=user_id, filename=file.filename, file_path=file_path, status="pending")
+    file_path, mime_type = _save_file(file) # Unpack the tuple
+    doc = Document(
+        user_id=user_id, 
+        filename=file.filename, # Original filename
+        file_path=file_path,    # Unique path
+        mime_type=mime_type,    # Store mime_type
+        status="pending"
+    )
     db.add(doc)
     db.commit()
     db.refresh(doc)
