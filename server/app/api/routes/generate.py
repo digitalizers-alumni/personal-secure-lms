@@ -41,6 +41,10 @@ async def generate(request: GenerateRequest):
             keywords=result["keywords"],
             sources=[ChunkSource(**c) for c in result["sources"]],
         )
+    except HTTPException as e:
+        # Re-raise HTTPException directly, as it's already properly formatted
+        raise e
     except Exception as e:
         logger.error("Generation failed: %s", str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        # For any other unexpected exception, raise a generic 500 Internal Server Error
+        raise HTTPException(status_code=500, detail="Internal Server Error")
