@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Documents from "./pages/Documents";
 import AIPrompt from "./pages/AIPrompt";
+import CreateCourse from "./pages/CreateCourse";
 import NotFound from "./pages/NotFound";
 import { LanguageSelector } from "./components/LanguageSelector";
 
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="/dashboard" element={<AuthGuard><Index /></AuthGuard>} />
                 <Route path="/documents" element={<AuthGuard><Documents /></AuthGuard>} />
                 <Route path="/ai-prompt" element={<AuthGuard><AIPrompt /></AuthGuard>} />
+                <Route path="/create-course" element={<AuthGuard><CreateCourse /></AuthGuard>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

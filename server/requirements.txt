@@ -44,3 +44,6 @@ email-validator
 pytest
 pytest-asyncio
 httpx
+
+# Environmental constraints
+numpy<2.0.0

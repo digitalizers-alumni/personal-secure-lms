@@ -16,7 +16,7 @@ def seed():
     db = SessionLocal()
     try:
         # Check if admin exists
-        admin_email = "admin@lumina.ch"
+        admin_email = "admin@lumina-swiss.ch"
         db_user = db.query(User).filter(User.email == admin_email).first()
         
         if not db_user:

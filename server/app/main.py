@@ -70,6 +70,13 @@ app.include_router(
     dependencies=[Depends(get_current_user)]
 )
 
+app.include_router(
+    courses_router,
+    prefix="/api/courses",
+    tags=["Courses"],
+    dependencies=[Depends(get_current_user)]
+)
+
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "healthy"}

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   FileText,
   Sparkles,
+  GraduationCap,
   ChevronLeft,
   ChevronRight,
   Shield,
@@ -23,6 +24,7 @@ const navItems: NavItem[] = [
   { labelKey: "nav_dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { labelKey: "nav_documents", icon: FileText, path: "/documents" },
   { labelKey: "nav_ai_prompt", icon: Sparkles, path: "/ai-prompt" },
+  { labelKey: "nav_create_course", icon: GraduationCap, path: "/create-course" },
 ];
 
 const AppSidebar = () => {

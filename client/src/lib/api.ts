@@ -79,3 +79,28 @@ export async function generateFromRAG(prompt: string, documentIds: number[] = []
 
   return response.json();
 }
+
+export async function generateCourse(data: {
+  topic: string;
+  learning_goal: string;
+  difficulty: string;
+  passing_score: number;
+  doc_ids: number[];
+  additional_instructions?: string;
+}): Promise<any> {
+  const response = await fetch(`${API_URL}/api/courses/generate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Course generation failed");
+  }
+
+  return response.json();
+}

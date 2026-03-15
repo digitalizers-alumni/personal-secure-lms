@@ -51,7 +51,7 @@ docker run -p 6333:6333 qdrant/qdrant
 
 ## 🎯 Demo Login
 For the demo, you can use:
-- **Email**: `admin@luminaswiss.ch`
+- **Email**: `admin@lumina-swiss.ch`
 - **Password**: `admin123`
 
 ## 📦 Submission & Deployment

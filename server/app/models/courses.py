@@ -7,6 +7,7 @@ class Course(Base):
     __tablename__ = "courses"
     
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, nullable=False, index=True)
     title = Column(String, nullable=False)
     description = Column(String)
     content_markdown = Column(String)

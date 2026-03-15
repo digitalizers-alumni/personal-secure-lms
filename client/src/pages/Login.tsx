@@ -144,7 +144,7 @@ const Login = () => {
             variant="outline"
             disabled={isLoading}
             onClick={() => {
-              setUsername("admin@lumina.ch");
+              setUsername("admin@lumina-swiss.ch");
               setPassword("admin123");
               // Submit after state update on next tick
               setTimeout(() => {
