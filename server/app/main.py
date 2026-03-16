@@ -77,6 +77,10 @@ app.include_router(
     dependencies=[Depends(get_current_user)]
 )
 
+@app.get("/")
+async def read_root():
+    return {"message": "Welcome to the Atlas Backend API"}
+
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "healthy"}

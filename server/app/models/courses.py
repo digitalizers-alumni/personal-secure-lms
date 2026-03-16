@@ -17,6 +17,9 @@ class Course(Base):
     target_depts_ids = Column(JSON, default=[])
     target_job_positions = Column(JSON, default=[])
     
+    quiz = Column(JSON, default=[])
+    reward = Column(JSON, default={})
+
     status = Column(String, default="DRAFT")
     is_deleted = Column(Boolean, default=False)
     

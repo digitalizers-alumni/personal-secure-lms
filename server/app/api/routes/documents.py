@@ -24,7 +24,7 @@ ALLOWED_MIME_TYPES = {
     "text/plain",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 }
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
 
 def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
     os.makedirs(STORAGE_DIR, exist_ok=True)
@@ -36,8 +36,8 @@ def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
         raise HTTPException(status_code=415, detail=f"Unsupported file type: {extension}")
     
     # 1. Early reject based on metadata headers (if provided by client)
-    if hasattr(file, 'size') and file.size and file.size > 20 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="File is too large (max 20MB)")
+    if hasattr(file, 'size') and file.size and file.size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail=f"File is too large (max {MAX_FILE_SIZE // (1024 * 1024)}MB)")
 
     # 2. Extract first small chunk to check magic numbers safely without loading huge files into memory
     first_chunk = file.file.read(1024)
@@ -71,10 +71,10 @@ def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
             
             total_size += len(chunk)
             # Enforce hard limit even if metadata was spoofed
-            if total_size > 20 * 1024 * 1024:
+            if total_size > MAX_FILE_SIZE:
                 f.close()
                 os.remove(file_path)
-                raise HTTPException(status_code=413, detail="File is too large (max 20MB)")
+                raise HTTPException(status_code=413, detail=f"File is too large (max {MAX_FILE_SIZE // (1024 * 1024)}MB)")
                 
             hash_sha256_obj.update(chunk)
             f.write(chunk)
