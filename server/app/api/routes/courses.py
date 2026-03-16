@@ -26,7 +26,9 @@ def create_course(
         content_markdown=course_in.content_markdown,
         generated_by_llm=course_in.generated_by_llm,
         list_src_docs_ids=course_in.list_src_docs_ids,
-        target_job_positions=course_in.target_job_positions
+        target_job_positions=course_in.target_job_positions,
+        quiz=course_in.quiz,
+        reward=course_in.reward
     )
     db.add(db_course)
     db.commit()
@@ -56,6 +58,13 @@ def get_course(
     ).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found or access denied")
+    
+    # Aliases for frontend
+    course.lesson_content = course.content_markdown
+    if course.reward:
+        course.reward_title = course.reward.get("reward_title")
+        course.reward_message = course.reward.get("reward_message")
+        
     return course
 
 @router.put("/{course_id}", response_model=CourseSchema)
@@ -99,13 +108,14 @@ def update_course_status(
     db.refresh(db_course)
     return db_course
 
-@router.post("/generate", response_model=CoursePackage)
+@router.post("/generate", response_model=CourseSchema)
 async def generate_course(
     request: CourseGenerationRequest,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Generate a structured course with lesson, quiz, and reward.
+    Generate a structured course with lesson, quiz, and reward, then save it.
     """
     system_prompt = f"""You are an expert educator. Generate a structured mini-course in JSON format.
 The course must follow this exact structure:
@@ -145,7 +155,34 @@ CRITICAL RULES:
 
     try:
         course_data = await llm_service.generate_json_response(user_prompt, system_prompt)
-        return CoursePackage(**course_data)
+        # Parse it to ensure it matches CoursePackage structure if needed, or just use dict
+        pkg = CoursePackage(**course_data)
+        
+        # Create and save Course entry
+        db_course = Course(
+            user_id=current_user.email,
+            title=pkg.title,
+            description=request.learning_goal,
+            content_markdown=pkg.lesson_content,
+            generated_by_llm=True,
+            list_src_docs_ids=request.doc_ids or [],
+            quiz=[q.model_dump() for q in pkg.quiz],
+            reward={
+                "reward_title": pkg.reward_title,
+                "reward_message": pkg.reward_message
+            },
+            status="PUBLISHED" # Automatiquement publié pour ce prototype
+        )
+        db.add(db_course)
+        db.commit()
+        db.refresh(db_course)
+
+        # Set aliases for frontend compatibility
+        db_course.lesson_content = db_course.content_markdown
+        db_course.reward_title = db_course.reward.get("reward_title")
+        db_course.reward_message = db_course.reward.get("reward_message")
+        
+        return db_course
     except HTTPException: # Catch only HTTPExceptions raised by llm_service
         raise # Re-raise if it's an HTTPException
     except Exception as e: # Catch other exceptions
