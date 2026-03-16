@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Shield,
   LogOut,
+  Users as UsersIcon,
 } from "lucide-react";
 
 interface NavItem {
@@ -107,6 +108,42 @@ const AppSidebar = () => {
             </Link>
           );
         })}
+        {role === "admin" && (
+          <>
+            <div className="px-3 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Admin
+            </div>
+            <Link
+              to="/users"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
+                location.pathname === "/users"
+                  ? "bg-sidebar-accent text-sidebar-primary"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+              }`}
+            >
+              {location.pathname === "/users" && (
+                <motion.div
+                  layoutId="activeIndicatorAdmin"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-sidebar-primary active-glow"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+              <UsersIcon className={`w-5 h-5 flex-shrink-0 ${location.pathname === "/users" ? "text-sidebar-primary" : ""}`} />
+              <AnimatePresence>
+                {!collapsed && (
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: "auto" }}
+                    exit={{ opacity: 0, width: 0 }}
+                    className="text-sm font-medium overflow-hidden whitespace-nowrap"
+                  >
+                    {t("nav_users")}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* Role Badge & Logout & Collapse */}
