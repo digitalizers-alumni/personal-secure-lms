@@ -143,3 +143,7 @@ Icon
 *.swo
 .project
 .settings/
+
+# Playwright
+client/playwright-report/
+client/test-results/

@@ -14,7 +14,11 @@ COLLECTION_NAME = "documents"
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 
-client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+if settings.QDRANT_HOST == ":memory:":
+    client = QdrantClient(":memory:")
+    logger.info("Using in-memory Qdrant")
+else:
+    client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
 
 
 def ensure_collection():
