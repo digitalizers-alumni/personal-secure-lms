@@ -1,6 +1,6 @@
 services:
   qdrant:
-    image: haktansuren/qdrant-pi5-fixed-jemalloc:latest
+    image: qdrant/qdrant:latest
     container_name: qdrant-pi
     ports:
       - "6333:6333"

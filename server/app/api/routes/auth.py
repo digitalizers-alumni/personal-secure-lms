@@ -1,7 +1,3 @@
-"""
-Authentication route — issues JWT tokens for login.
-For demo/MVP purposes, any username/password combination is accepted.
-"""
 import jwt
 import datetime
 from fastapi import APIRouter, HTTPException, Depends
