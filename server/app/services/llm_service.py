@@ -1,4 +1,5 @@
 import httpx
+from fastapi import HTTPException
 from app.api.core.config import settings
 
 class LLMService:
