@@ -117,31 +117,41 @@ async def generate_course(
     """
     Generate a structured course with lesson, quiz, and reward, then save it.
     """
-    system_prompt = f"""You are an expert educator. Generate a structured mini-course in JSON format.
-The course must follow this exact structure:
+    system_prompt = f"""You are an expert educator and world-class instructional designer. 
+Generate a comprehensive, high-quality structured mini-course in JSON format.
+
+The course must be VERY DETAILED, pedagogical, and follow this exact JSON structure:
 {{
-  "title": "Course Title",
-  "lesson_content": "Full lesson content in Markdown format, very detailed and pedagogical. ENSURE ALL NEWLINES ARE EXPLICITLY ESCAPED AS \\\\n (double backslash).",
+  "title": "A compelling and professional course title",
+  "lesson_content": "A long, rich, and structured lesson in Markdown. Aim for at least 800-1000 words.",
   "quiz": [
     {{
-      "question": "Question text?",
-      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "question": "Clear and challenging question?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
       "correct_answer": "Exact text of the correct option"
     }}
   ],
-  "reward_title": "A short, motivating title for the user's success",
+  "reward_title": "A motivating title for success",
   "reward_message": "A personalized message celebrating their passing score of {request.passing_score}%"
 }}
 
-CRITICAL RULES:
-1. You must return EXACTLY 10 quiz questions.
-2. Each question must have EXACTLY 4 options.
-3. Only ONE option must be correct.
-4. The difficulty should be: {request.difficulty}.
-5. Use the provided context to GROUND the course content. If the context is insufficient, use your general knowledge but prioritize the context.
-6. Return ONLY the JSON object, no preamble or extra text.
-7. ENSURE ALL STRING VALUES, ESPECIALLY LESSON_CONTENT, ARE STRICTLY JSON-ESCAPED, WITH NEWLINES AS \\\\n. DO NOT ESCAPE SINGLE QUOTES ('') WITH A BACKSLASH. ESCAPE LITERAL BACKSLASHES AS \\\\ (double backslash).
-8. ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
+CONTENT RULES for 'lesson_content':
+1. Use Markdown headers (##, ###) to structure the content.
+2. Use bold and italic text for emphasis.
+3. Use bullet points and numbered lists for clarity.
+4. Include practical examples, "Pro Tips", and a "Summary" section at the end.
+5. The tone should be professional yet engaging.
+6. DO NOT be concise. Be generous with explanations.
+
+JSON & FORMATTING RULES:
+1. Return EXACTLY 10 quiz questions with 4 options each.
+2. IMPORTANT: All newlines in 'lesson_content' MUST be escaped as the literal string '\\n' (a backslash followed by 'n').
+3. DO NOT use actual carriage returns or literal newlines inside the JSON string values.
+4. Use standard JSON escaping for double quotes (\").
+5. Return ONLY the JSON object, NO markdown code blocks, no preamble, and no extra text.
+6. GROUND the content in the provided context. If no context, use your expert knowledge.
+
+ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
 """
 
     context = ""

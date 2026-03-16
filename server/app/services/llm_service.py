@@ -86,27 +86,39 @@ class LLMService:
                 
                 logger.info(f"LLM response received (generate_json_response): {result}") # Added logging
                 llm_content = result['choices'][0]['message']['content'].strip()
-
-                # More robust extraction of JSON from markdown code block
-                json_string = llm_content
-                if llm_content.startswith("```json"):
-                    json_string = llm_content[len("```json"):].strip()
-                elif llm_content.startswith("```"):
-                    json_string = llm_content[len("```"):].strip()
                 
-                if json_string.endswith("```"):
-                    json_string = json_string[:-len("```")].strip()
+                # Robust extraction of JSON from response (handling markdown, preamble, etc.)
+                json_match = re.search(r'(\{.*\})', llm_content, re.DOTALL)
+                if json_match:
+                    json_string = json_match.group(1)
+                else:
+                    json_string = llm_content # Fallback
 
                 try:
-                    parsed_json = json.loads(json_string) # Directly parse json_string
-                    return parsed_json # Return parsed JSON object
+                    return json.loads(json_string)
                 except json.JSONDecodeError as e:
-                    logger.error(f"Failed to decode JSON from LLM content: {e}")
-                    logger.error(f"Problematic JSON string (first 200 chars): {json_string[:200]!r}") # Log original json_string
-                    raise HTTPException(
-                        status_code=502,
-                        detail=f"LLM Structure Error: Failed to parse JSON response - {str(e)}"
-                    )
+                    # If it fails, try to replace literal newlines that might be inside strings
+                    # (very basic attempt: find newlines that aren't followed by a key or closing brace)
+                    # A more robust but slower fix if needed
+                    logger.warning(f"Initial JSON parse failed: {e}. Attempting basic fixup...")
+                    try:
+                        # Find literal newlines and escape them
+                        # This is tricky without a proper state machine, but let's try a common LLM mistake fix
+                        fixed_string = json_string.replace("\n", "\\n")
+                        # But wait, this escapes REAL JSON structural newlines too. 
+                        # Actually, json.loads handles real newlines IF they are outside of strings.
+                        # The error 'Invalid control character' means they are INSIDE strings.
+                        
+                        # Let's try to just use strict=False which allows some control characters
+                        # but still fails on literal newlines in strings.
+                        return json.loads(json_string, strict=False)
+                    except Exception:
+                        logger.error(f"Failed to decode JSON from LLM content: {e}")
+                        logger.error(f"Problematic JSON string (first 200 chars): {json_string[:200]!r}")
+                        raise HTTPException(
+                            status_code=502,
+                            detail=f"LLM Structure Error: Failed to parse JSON response - {str(e)}"
+                        )
             except Exception as e:
                 logger.error(f"Structured LLM request failed: {e}")
                 raise HTTPException(status_code=502, detail=f"LLM Structure Error: {str(e)}") # Re-raise here for consistency
