@@ -218,7 +218,7 @@ const Users = () => {
                       </td>
                       <td className="py-3 px-4">
                         <span className="flex items-center gap-1.5 text-xs">
-                          {user.user_role === "admin"
+                          {user.user_role?.toUpperCase() === "ADMIN"
                             ? <><Shield className="w-3.5 h-3.5 text-primary" /> Admin</>
                             : <><UserIcon className="w-3.5 h-3.5 text-muted-foreground" /> Utilisateur</>
                           }

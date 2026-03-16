@@ -117,7 +117,7 @@ async def list_documents(
     current_user: User = Depends(get_current_user)
 ):
     return db.query(Document).filter(
-        Document.user_id == current_user.email, 
+        Document.user_id == current_user.id,
         Document.is_deleted == False
     ).order_by(Document.created_at.desc()).all()
 
@@ -128,8 +128,8 @@ async def get_document_status(
     current_user: User = Depends(get_current_user)
 ):
     doc = db.query(Document).filter(
-        Document.id == doc_id, 
-        Document.user_id == current_user.email,
+        Document.id == doc_id,
+        Document.user_id == current_user.id,
         Document.is_deleted == False
     ).first()
     if not doc:

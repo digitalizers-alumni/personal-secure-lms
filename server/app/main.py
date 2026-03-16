@@ -33,7 +33,8 @@ app = FastAPI(
     title="Lumina Backend",
     description="RAG API — document ingestion and LLM-augmented query service",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False
 )
 
 # CORS configuration

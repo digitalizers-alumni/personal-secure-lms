@@ -52,7 +52,7 @@ def update_my_password(
 
 # --- Admin only routes ---
 
-@router.get("/", response_model=List[UserSchema])
+@router.get("", response_model=List[UserSchema])
 def list_users(
     db: Session = Depends(get_db),
     _: User = Depends(get_admin_user)
