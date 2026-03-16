@@ -94,8 +94,12 @@ services:
       - MODEL_CACHE_DIR=/app/data/models
       - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/rag_lms.db}
       - QDRANT_HOST=qdrant
+<<<<<<< HEAD
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+=======
+      - REDIS_HOST=redis # Added to ensure api service can connect to Redis
+>>>>>>> f72981dc98f4aed33e2cce6cb4652684a9cfb612
       # - HUGGINGFACE_HUB_OFFLINE=1         # if bge-m3 is already downloaded on server side
       # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
       # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side

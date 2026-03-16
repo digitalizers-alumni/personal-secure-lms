@@ -62,6 +62,23 @@ def get_current_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
+
+    # Inactivity-based session expiry
+    now = datetime.utcnow()
+    if user.last_activity:
+        # Comparison (Naive UTC)
+        last_act = user.last_activity.replace(tzinfo=None)
+        if (now - last_act) > timedelta(minutes=30):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired due to inactivity",
+            )
+    
+    # Update last activity
+    user.last_activity = now
+    db.commit()
+    db.refresh(user)
+
     if not user.is_active or user.is_deleted:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
