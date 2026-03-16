@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import {
   listUsers, updateUser, deleteUser,
-  activateUser, deactivateUser, type User
+  activateUser, deactivateUser, register, type User
 } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,14 +14,8 @@ import {
   DialogTitle, DialogFooter
 } from "@/components/ui/dialog";
 import {
-  Users as UsersIcon,
-  Shield,
-  User as UserIcon,
-  Trash2,
-  UserCheck,
-  UserX,
-  Loader2,
-  Search,
+  Users as UsersIcon, Shield, User as UserIcon,
+  Trash2, UserCheck, UserX, Loader2, Search, Plus,
 } from "lucide-react";
 
 const container = {
@@ -39,11 +33,22 @@ const Users = () => {
   const [filtered, setFiltered] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+
+  // Edit
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editFirst, setEditFirst] = useState("");
   const [editLast, setEditLast] = useState("");
   const [editJob, setEditJob] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Create
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [newFirst, setNewFirst] = useState("");
+  const [newLast, setNewLast] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState("USER");
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     listUsers()
@@ -89,6 +94,33 @@ const Users = () => {
     }
   };
 
+  const handleCreate = async () => {
+    setIsCreating(true);
+    try {
+      await register({
+        email: newEmail,
+        password: newPassword,
+        first_name: newFirst,
+        last_name: newLast,
+        user_role: newRole,
+      });
+      const data = await listUsers();
+      setUsers(data);
+      setFiltered(data);
+      setCreateDialogOpen(false);
+      setNewEmail("");
+      setNewFirst("");
+      setNewLast("");
+      setNewPassword("");
+      setNewRole("USER");
+      toast({ title: "Utilisateur créé" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erreur", description: err.message });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const handleDelete = async (userId: number) => {
     try {
       await deleteUser(userId);
@@ -129,6 +161,7 @@ const Users = () => {
     <DashboardLayout>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
 
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -140,8 +173,16 @@ const Users = () => {
               Gérez les comptes utilisateurs de l'organisation
             </p>
           </div>
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            className="gradient-primary text-primary-foreground gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Nouvel utilisateur
+          </Button>
         </motion.div>
 
+        {/* Search */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -157,12 +198,14 @@ const Users = () => {
           />
         </motion.div>
 
+        {/* Loading */}
         {isLoading && (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         )}
 
+        {/* Empty state */}
         {!isLoading && filtered.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -174,6 +217,7 @@ const Users = () => {
           </motion.div>
         )}
 
+        {/* Users table */}
         {!isLoading && filtered.length > 0 && (
           <motion.div
             variants={container}
@@ -202,7 +246,7 @@ const Users = () => {
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
                             <span className="text-xs font-bold text-primary-foreground">
-                              {user.first_name[0]}{user.last_name[0]}
+                              {user.first_name?.[0]}{user.last_name?.[0]}
                             </span>
                           </div>
                           <div>
@@ -219,7 +263,7 @@ const Users = () => {
                       <td className="py-3 px-4">
                         <span className="flex items-center gap-1.5 text-xs">
                           {user.user_role?.toUpperCase() === "ADMIN"
-                            ? <><Shield className="w-3.5 h-3.5 text-primary" /> Admin</>
+                            ? <><Shield className="w-3.5 h-3.5 text-primary" /> Administrateur</>
                             : <><UserIcon className="w-3.5 h-3.5 text-muted-foreground" /> Utilisateur</>
                           }
                         </span>
@@ -284,6 +328,7 @@ const Users = () => {
           </motion.div>
         )}
 
+        {/* Edit dialog */}
         <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
           <DialogContent className="glass-card border-border">
             <DialogHeader>
@@ -320,6 +365,64 @@ const Users = () => {
               >
                 {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                 Sauvegarder
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create dialog */}
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent className="glass-card border-border">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Nouvel utilisateur</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <Input
+                placeholder="Prénom"
+                value={newFirst}
+                onChange={(e) => setNewFirst(e.target.value)}
+                className="bg-background/50"
+              />
+              <Input
+                placeholder="Nom"
+                value={newLast}
+                onChange={(e) => setNewLast(e.target.value)}
+                className="bg-background/50"
+              />
+              <Input
+                placeholder="Email"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="bg-background/50"
+              />
+              <Input
+                placeholder="Mot de passe"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="bg-background/50"
+              />
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-border bg-background/50 text-sm text-foreground"
+              >
+                <option value="USER">Utilisateur</option>
+                <option value="ADMIN">Administrateur</option>
+              </select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button
+                onClick={handleCreate}
+                disabled={isCreating || !newEmail || !newPassword || !newFirst || !newLast}
+                className="gradient-primary text-primary-foreground gap-2"
+              >
+                {isCreating && <Loader2 className="w-4 h-4 animate-spin" />}
+                Créer
               </Button>
             </DialogFooter>
           </DialogContent>

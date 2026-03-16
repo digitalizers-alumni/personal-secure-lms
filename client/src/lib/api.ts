@@ -184,3 +184,21 @@ export async function deactivateUser(userId: number): Promise<void> {
   });
   if (!response.ok) throw new Error("Failed to deactivate user");
 }
+
+export async function register(payload: {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  user_role?: string;
+}): Promise<void> {
+  const response = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Registration failed");
+  }
+}
