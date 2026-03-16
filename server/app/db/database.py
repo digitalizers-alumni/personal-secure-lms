@@ -5,7 +5,9 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 logger = logging.getLogger(__name__)
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/rag_lms.db")
+from app.api.core.config import settings
+
+DATABASE_URL = settings.DATABASE_URL
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
@@ -20,7 +22,9 @@ class Base(DeclarativeBase):
 
 def init_db():
     # Avoiding circular import
-    import app.models.document_schema                           
+    from app.models.documents import Document
+    from app.models.users import User
+    from app.models.courses import Course
     """Create all tables on startup if they don't exist"""
     Base.metadata.create_all(bind=engine)
     logger.info("Database initialized")

@@ -2,7 +2,7 @@ import logging
 from app.worker.celery_app import celery_app
 from app.rag.indexer import index_document as run_indexing
 from app.db.database import SessionLocal
-from app.models.document_schema import Document
+from app.models.documents import Document
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +25,9 @@ def _set_status(doc_id: int, status: str):
 
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
-def ingest_document(self, doc_id: int, file_path: str, user_id: int):
+def ingest_document(self, doc_id: int, file_path: str, user_id: str):
     """
-    Async task — extracts text, embeds with BGE-M3 and upserts into Qdrant.
+    Async task — extracts text, embeds with MiniLM and upserts into Qdrant.
     Retries up to 3 times with 30s delay on failure.
     """
     logger.info("Starting ingestion for doc_id=%s", doc_id)

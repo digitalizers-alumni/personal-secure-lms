@@ -4,12 +4,23 @@ from typing import List
 from app.db.database import get_db
 from app.models.courses import Course
 from app.api.schemas.courses import CourseCreate, CourseUpdate, Course as CourseSchema
+from app.api.schemas.courses_gen import CourseGenerationRequest, CoursePackage
+from app.services.llm_service import llm_service
+from app.rag.retriever import search
+from app.api.core.security import get_current_user
+from app.models.users import User
+import json
 
 router = APIRouter()
 
 @router.post("/", response_model=CourseSchema, status_code=status.HTTP_201_CREATED)
-def create_course(course_in: CourseCreate, db: Session = Depends(get_db)):
+def create_course(
+    course_in: CourseCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     db_course = Course(
+        user_id=current_user.email,
         title=course_in.title,
         description=course_in.description,
         content_markdown=course_in.content_markdown,
@@ -23,21 +34,43 @@ def create_course(course_in: CourseCreate, db: Session = Depends(get_db)):
     return db_course
 
 @router.get("/", response_model=List[CourseSchema])
-def list_courses(db: Session = Depends(get_db)):
-    return db.query(Course).filter(Course.is_deleted == False).all()
+def list_courses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return db.query(Course).filter(
+        Course.user_id == current_user.email,
+        Course.is_deleted == False
+    ).all()
 
 @router.get("/{course_id}", response_model=CourseSchema)
-def get_course(course_id: str, db: Session = Depends(get_db)):
-    course = db.query(Course).filter(Course.id == course_id, Course.is_deleted == False).first()
+def get_course(
+    course_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    course = db.query(Course).filter(
+        Course.id == course_id, 
+        Course.user_id == current_user.email,
+        Course.is_deleted == False
+    ).first()
     if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
+        raise HTTPException(status_code=404, detail="Course not found or access denied")
     return course
 
 @router.put("/{course_id}", response_model=CourseSchema)
-def update_course(course_id: str, course_in: CourseUpdate, db: Session = Depends(get_db)):
-    db_course = db.query(Course).filter(Course.id == course_id).first()
+def update_course(
+    course_id: str, 
+    course_in: CourseUpdate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    db_course = db.query(Course).filter(
+        Course.id == course_id,
+        Course.user_id == current_user.email
+    ).first()
     if not db_course:
-        raise HTTPException(status_code=404, detail="Course not found")
+        raise HTTPException(status_code=404, detail="Course not found or access denied")
     
     update_data = course_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -48,21 +81,88 @@ def update_course(course_id: str, course_in: CourseUpdate, db: Session = Depends
     return db_course
 
 @router.put("/{course_id}/status", response_model=CourseSchema)
-def update_course_status(course_id: str, status: str, db: Session = Depends(get_db)):
+def update_course_status(
+    course_id: str, 
+    status: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     # ex: PUBLISHED, ARCHIVED
-    db_course = db.query(Course).filter(Course.id == course_id).first()
+    db_course = db.query(Course).filter(
+        Course.id == course_id,
+        Course.user_id == current_user.email
+    ).first()
     if not db_course:
-        raise HTTPException(status_code=404, detail="Course not found")
+        raise HTTPException(status_code=404, detail="Course not found or access denied")
     db_course.status = status
     db.commit()
     db.refresh(db_course)
     return db_course
 
+@router.post("/generate", response_model=CoursePackage)
+async def generate_course(
+    request: CourseGenerationRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Generate a structured course with lesson, quiz, and reward.
+    """
+    system_prompt = f"""You are an expert educator. Generate a structured mini-course in JSON format.
+The course must follow this exact structure:
+{{
+  "title": "Course Title",
+  "lesson_content": "Full lesson content in Markdown format, very detailed and pedagogical.",
+  "quiz": [
+    {{
+      "question": "Question text?",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "correct_answer": "Exact text of the correct option"
+    }}
+  ],
+  "reward_title": "A short, motivating title for the user's success",
+  "reward_message": "A personalized message celebrating their passing score of {request.passing_score}%"
+}}
+
+CRITICAL RULES:
+1. You must return EXACTLY 10 quiz questions.
+2. Each question must have EXACTLY 4 options.
+3. Only ONE option must be correct.
+4. The difficulty should be: {request.difficulty}.
+5. Use the provided context to GROUND the course content. If the context is insufficient, use your general knowledge but prioritize the context.
+6. Return ONLY the JSON object, no preamble or extra text.
+7. ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
+"""
+
+    context = ""
+    if request.doc_ids:
+        query = f"{request.topic} {request.learning_goal}"
+        chunks = search(query=query, top_k=8, user_id=current_user.email, doc_ids=request.doc_ids)
+        if chunks:
+            context = "\n\n".join([f"Source {i+1}:\n{c['text']}" for i, c in enumerate(chunks)])
+
+    user_prompt = f"Topic: {request.topic}\nLearning Goal: {request.learning_goal}\n\nContext:\n{context or 'No specific context provided.'}"
+
+    try:
+        raw_json = await llm_service.generate_json_response(user_prompt, system_prompt)
+        course_data = json.loads(raw_json)
+        return CoursePackage(**course_data)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail="AI returned invalid JSON")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_course(course_id: str, db: Session = Depends(get_db)):
-    course = db.query(Course).filter(Course.id == course_id).first()
+def delete_course(
+    course_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    course = db.query(Course).filter(
+        Course.id == course_id,
+        Course.user_id == current_user.email
+    ).first()
     if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
+        raise HTTPException(status_code=404, detail="Course not found or access denied")
     course.is_deleted = True
     db.commit()
     return None

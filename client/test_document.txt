@@ -1,0 +1,4 @@
+Jean Dupont (jean.dupont@example.com) est un client résidant à Paris.
+Son numéro de téléphone est le +33 6 12 34 56 78.
+Il a acheté un produit d'une valeur de 500 euros le 12 mai 2025.
+Ce document est confidentiel.

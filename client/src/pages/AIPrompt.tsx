@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { generateFromRAG } from "@/lib/api";
+import { restaurerRéponse } from "@/lib/pii";
 import {
   Sparkles,
   FileText,
-  File,
+  File as FileIcon,
   FileSpreadsheet,
   Presentation,
   Send,
@@ -19,12 +22,13 @@ import {
   ShieldCheck,
   Loader2,
 } from "lucide-react";
+import SourceCard from "@/components/SourceCard";
 
 // --- Helpers ---
 
 const typeIcons: Record<string, React.ElementType> = {
   pdf: FileText,
-  docx: File,
+  docx: FileIcon,
   pptx: Presentation,
   xlsx: FileSpreadsheet,
 };
@@ -37,10 +41,15 @@ const AIPrompt = () => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [prompt, setPrompt] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [generationResult, setGenerationResult] = useState<{
+    answer: string;
+    sources: { text: string; doc_id: number; score: number }[];
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Seuls les documents dont l'analyse est terminée sont sélectionnables
+  // Seuls les documents indexés avec backendDocId sont sélectionnables
   const readyDocs = useMemo(
-    () => documents.filter((d) => d.status !== "scanning"),
+    () => documents.filter((d) => d.indexStatus === "indexed" && d.backendDocId !== undefined),
     [documents]
   );
 
@@ -82,30 +91,53 @@ const AIPrompt = () => {
     }
 
     setIsSending(true);
+    setGenerationResult(null);
+    setError(null);
 
-    // Préparer le payload : prompt + textes tokenisés des documents sélectionnés
-    const selected = documents.filter((d) => selectedIds.has(d.id));
-    const payload = {
-      prompt: prompt.trim(),
-      documents: selected.map((d) => ({
-        id: d.id,
-        name: d.name,
-        // Envoyer le texte anonymisé (tokens PII) si disponible, sinon le texte original
-        content: d.detectionResult?.anonymizedText ?? d.texteOriginal ?? "",
-      })),
-    };
+    // Get the backend doc IDs for the selected items
+    const selectedBackendDocIds = readyDocs
+      .filter((d) => selectedIds.has(d.id))
+      .map((d) => d.backendDocId as number);
 
-    // TODO: Envoyer au backend quand l'API sera prête
-    console.log("[AIPrompt] Payload prêt :", payload);
+    try {
+      const result = await generateFromRAG(prompt.trim(), selectedBackendDocIds.length > 0 ? selectedBackendDocIds : undefined);
 
-    // Simulation d'envoi pour le MVP
-    await new Promise((r) => setTimeout(r, 800));
-    setIsSending(false);
+      let finalAnswer = result.answer;
 
-    toast({
-      title: t("ai_sent_title"),
-      description: t("ai_sent_desc"),
-    });
+      // Restauration PII pour chaque document sélectionné qui a été envoyé. 
+      const token = localStorage.getItem("lumina_token") || "";
+      const selectedClientDocs = readyDocs.filter((d) => selectedIds.has(d.id));
+      for (const doc of selectedClientDocs) {
+        try {
+          if (doc.backendDocId) {
+            finalAnswer = await restaurerRéponse(doc.backendDocId.toString(), finalAnswer, token);
+          }
+        } catch (e) {
+          console.error(`Failed to restore tokens for doc ${doc.id}`, e);
+        }
+      }
+
+      setGenerationResult({
+        answer: finalAnswer,
+        sources: result.sources || []
+      });
+
+      toast({
+        title: t("ai_sent_title"),
+        description: t("ai_sent_desc"),
+      });
+    } catch (e: any) {
+      console.error(e);
+      const errorMessage = e.message || t("ai_generation_fail_desc");
+      setError(errorMessage);
+      toast({
+        variant: "destructive",
+        title: t("ai_generation_error"),
+        description: errorMessage
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -160,11 +192,10 @@ const AIPrompt = () => {
                 return (
                   <label
                     key={doc.id}
-                    className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-colors ${
-                      isSelected
+                    className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-colors ${isSelected
                         ? "bg-primary/5"
                         : "hover:bg-muted/20"
-                    }`}
+                      }`}
                   >
                     <Switch
                       checked={isSelected}
@@ -191,7 +222,7 @@ const AIPrompt = () => {
                       {doc.status === "pii-found" && (
                         <span className="flex items-center gap-1 text-xs text-warning">
                           <AlertTriangle className="w-3.5 h-3.5" />
-                          {doc.entityCount} PII
+                          {t("docs_pii_count").replace("{n}", String(doc.entityCount))}
                         </span>
                       )}
                     </div>
@@ -240,6 +271,62 @@ const AIPrompt = () => {
             </Button>
           </div>
         </motion.div>
+
+        {/* Erreur de génération */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 flex items-start gap-3"
+          >
+            <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-destructive">{t("ai_generation_error")}</h3>
+              <p className="text-xs text-destructive/80 mt-1">{error}</p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Résultat de la génération */}
+        {generationResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card rounded-xl p-5 space-y-4 border-primary/20 bg-primary/5"
+          >
+            <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              {t("ai_answer_title")}
+            </h2>
+            <div className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">
+              {generationResult.answer}
+            </div>
+
+            {generationResult.sources.length > 0 && (
+              <div className="pt-4 border-t border-border/50 space-y-3">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {t("ai_sources_used")}
+                </h3>
+                <ScrollArea className="h-[150px]">
+                  <div className="space-y-2 pr-4">
+                    {generationResult.sources.map((source, i) => {
+                      const sourceDoc = documents.find(d => d.backendDocId === source.doc_id);
+                      return (
+                        <SourceCard
+                          key={i}
+                          text={source.text}
+                          docName={sourceDoc?.name || ""}
+                          docId={source.doc_id}
+                          score={source.score}
+                        />
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
     </DashboardLayout>
   );

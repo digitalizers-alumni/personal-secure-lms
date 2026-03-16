@@ -5,17 +5,20 @@ import docx
 from pypdf import PdfReader
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, VectorParams, Distance
+from app.api.core.config import settings
 from app.rag.embedder import embedder
 
 logger = logging.getLogger(__name__)
 
-QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
-QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
 COLLECTION_NAME = "documents"
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 
-client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+if settings.QDRANT_HOST == ":memory:":
+    client = QdrantClient(":memory:")
+    logger.info("Using in-memory Qdrant")
+else:
+    client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
 
 
 def ensure_collection():
@@ -72,7 +75,7 @@ def extract_text(file_path: str) -> str:
     return extractors[extension](file_path)
 
 
-def index_document(doc_id: int, file_path: str, user_id: int):
+def index_document(doc_id: int, file_path: str, user_id: str):
     """
     Complete pipeline : PDF → chunks → embeddings → Qdrant
     """

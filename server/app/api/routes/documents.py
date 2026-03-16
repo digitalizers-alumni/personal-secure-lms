@@ -1,14 +1,17 @@
 import os # Re-adding os import
 import logging
-import uuid
-import hashlib # Import the hashlib module
+from app.api.core.security import get_current_user
+from app.models.users import User
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Tuple
 from app.db.database import get_db
 from app.models.documents import Document
 from app.api.schemas.documents import DocumentUploadResponse, DocumentStatusResponse
 from app.worker.tasks import ingest_document
+from app.rag.indexer import delete_document as delete_rag_document
+import uuid
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -23,82 +26,87 @@ ALLOWED_MIME_TYPES = {
 }
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
-def _save_file(file: UploadFile) -> tuple[str, str, str]: # Change return type to tuple (file_path, mime_type, hash_sha256)
+def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
     os.makedirs(STORAGE_DIR, exist_ok=True)
     
     # 1. Check extension
     extension = os.path.splitext(file.filename)[1].lower()
+    
     if extension not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=415, 
-            detail=f"Extension '{extension}' non supportée. Extensions autorisées : {', '.join(ALLOWED_EXTENSIONS)}"
-        )
+        raise HTTPException(status_code=415, detail=f"Unsupported file type: {extension}")
     
-    # 2. Check MIME type
-    mime_type = file.content_type
-    if mime_type not in ALLOWED_MIME_TYPES:
-        raise HTTPException(
-            status_code=415, 
-            detail=f"Type MIME '{mime_type}' non supporté pour cette extension."
-        )
+    # 1. Early reject based on metadata headers (if provided by client)
+    if hasattr(file, 'size') and file.size and file.size > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File is too large (max 20MB)")
 
-    # 3. Read content to check size, empty file and calculate hash
-    content = file.file.read()
-    file_size = len(content)
-    
-    if file_size == 0:
-        raise HTTPException(status_code=400, detail="Le fichier est vide.")
+    # 2. Extract first small chunk to check magic numbers safely without loading huge files into memory
+    first_chunk = file.file.read(1024)
+    if not first_chunk:
+        raise HTTPException(status_code=400, detail="File is empty")
         
-    if file_size > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=413, 
-            detail=f"Fichier trop lourd ({file_size} octets). La limite est de {MAX_FILE_SIZE} octets (50 Mo)."
-        )
-    
-    # Calculate SHA256 hash
-    hash_sha256 = hashlib.sha256(content).hexdigest()
+    mime_type = "text/plain" # Default
+    if extension == ".pdf":
+        if not first_chunk.startswith(b"%PDF-"):
+            raise HTTPException(status_code=400, detail="Invalid PDF file signature")
+        mime_type = "application/pdf"
+    elif extension == ".docx":
+        if not first_chunk.startswith(b"PK\x03\x04"):
+            raise HTTPException(status_code=400, detail="Invalid DOCX file signature")
+        mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
-    # Generate a unique filename to prevent collisions
+    # Reset cursor for streaming to disk
+    file.file.seek(0)
+    hash_sha256_obj = hashlib.sha256()
+
     unique_filename = f"{uuid.uuid4()}_{file.filename}"
     file_path = os.path.join(STORAGE_DIR, unique_filename)
     
-    try:
-        with open(file_path, "wb") as f:
-            f.write(content)
-    except Exception as e:
-        logger.error(f"Erreur lors de l'écriture du fichier : {str(e)}")
-        raise HTTPException(status_code=500, detail="Erreur interne lors de la sauvegarde du fichier.")
-        
-    return file_path, mime_type, hash_sha256 # Return file_path, mime_type, and hash_sha256
+    total_size = 0
+    # Stream in 1 MB chunks to prevent OOM
+    with open(file_path, "wb") as f:
+        while True:
+            chunk = file.file.read(1024 * 1024) 
+            if not chunk:
+                break
+            
+            total_size += len(chunk)
+            # Enforce hard limit even if metadata was spoofed
+            if total_size > 20 * 1024 * 1024:
+                f.close()
+                os.remove(file_path)
+                raise HTTPException(status_code=413, detail="File is too large (max 20MB)")
+                
+            hash_sha256_obj.update(chunk)
+            f.write(chunk)
+            
+    file_size = total_size
+    final_hash = hash_sha256_obj.hexdigest()
+
+    return file_path, final_hash, mime_type, file_size
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=201)
-async def upload_document(user_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
-    file_path, mime_type, hash_sha256 = _save_file(file) # Unpack the tuple
+async def upload_document(
+    file: UploadFile = File(...), 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    user_id = current_user.email
+    file_path, hash_sha256, mime_type, file_size = _save_file(file)
     
-    # Check for existing document with the same hash for this user
-    existing_doc = db.query(Document).filter(
-        Document.user_id == user_id,
-        Document.hash_sha256 == hash_sha256,
-        Document.is_deleted == False # Only check against non-deleted documents
-    ).first()
-
-    if existing_doc:
-        raise HTTPException(
-            status_code=409, # 409 Conflict
-            detail={
-                "error": "DocumentAlreadyExists",
-                "message": f"Document with hash '{hash_sha256}' (original filename: '{file.filename}') has already been uploaded by this user.",
-                "hash": hash_sha256,
-                "document_id": existing_doc.id # Optionally return the ID of the existing document
-            }
-        )
+    # Extra metadata for the JSON field
+    metadata_json = {
+        "original_filename": file.filename,
+        "size_bytes": file_size,
+        "extension": os.path.splitext(file.filename)[1].lower()
+    }
 
     doc = Document(
         user_id=user_id, 
-        filename=file.filename, # Original filename
-        file_path=file_path,    # Unique path
-        mime_type=mime_type,    # Store mime_type
-        hash_sha256=hash_sha256, # Store hash_sha256
+        filename=file.filename, 
+        file_path=file_path, 
+        mime_type=mime_type,
+        hash_sha256=hash_sha256,
+        metadata_json=metadata_json,
         status="pending"
     )
     db.add(doc)
@@ -108,21 +116,53 @@ async def upload_document(user_id: str, file: UploadFile = File(...), db: Sessio
     return DocumentUploadResponse(doc_id=doc.id, filename=doc.filename, status=doc.status)
 
 @router.get("/", response_model=List[DocumentStatusResponse])
-async def list_documents(db: Session = Depends(get_db)):
-    return db.query(Document).filter(Document.is_deleted == False).all()
+async def list_documents(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return db.query(Document).filter(
+        Document.user_id == current_user.email, 
+        Document.is_deleted == False
+    ).order_by(Document.created_at.desc()).all()
 
 @router.get("/{doc_id}/status", response_model=DocumentStatusResponse)
-async def get_document_status(doc_id: int, db: Session = Depends(get_db)):
-    doc = db.query(Document).filter(Document.id == doc_id).first()
+async def get_document_status(
+    doc_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(
+        Document.id == doc_id, 
+        Document.user_id == current_user.email,
+        Document.is_deleted == False
+    ).first()
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
     return doc
 
 @router.delete("/{doc_id}", status_code=204)
-async def delete_document(doc_id: int, db: Session = Depends(get_db)):
-    doc = db.query(Document).filter(Document.id == doc_id).first()
+async def delete_document(
+    doc_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(
+        Document.id == doc_id, 
+        Document.user_id == current_user.email,
+        Document.is_deleted == False
+    ).first()
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
+    
+    # Soft delete in Database
     doc.is_deleted = True
     db.commit()
+    
+    # Remove from RAG Vectors
+    try:
+        delete_rag_document(doc_id)
+    except Exception as e:
+        logger.error(f"Failed to delete vectors for doc_id {doc_id}: {e}")
+        # We don't raise as the DB delete was successful
+        
     return None

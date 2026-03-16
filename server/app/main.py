@@ -6,9 +6,13 @@ from app.api.routes.llm import router as llm_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.users import router as users_router
 from app.api.routes.courses import router as courses_router
+from app.api.routes.auth import router as auth_router
 from app.db.database import init_db
+from app.api.core.config import settings
 from app.rag.embedder import embedder
 from app.api.routes.generate import router as generate_router
+from app.api.core.security import get_current_user
+from fastapi import Depends
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,22 +39,43 @@ app = FastAPI(
 # Configuration CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://localhost:5173"],
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Routes
-app.include_router(documents_router, prefix="/api/documents", tags=["Documents"])
-app.include_router(llm_router, prefix="/api/llm", tags=["LLM"])
-app.include_router(users_router, prefix="/api/users", tags=["Users"])
-app.include_router(courses_router, prefix="/api/courses", tags=["Courses"])
+# Auth route: /api/token
+app.include_router(auth_router, prefix="/api", tags=["Auth"])
 
-@app.get("/", tags=["General"])
-async def root():
-    return {"message": "Atlas Backend is running", "status": "ok"}
-app.include_router(documents_router, prefix="/api", tags=["Documents"])
-app.include_router(generate_router, prefix="/api", tags=["Generate"])
+# Protected routes (require JWT)
+app.include_router(
+    documents_router, 
+    prefix="/api/documents", 
+    tags=["Documents"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    generate_router, 
+    prefix="/api", 
+    tags=["Generate"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    users_router,
+    prefix="/api/users",
+    tags=["Users"],
+    dependencies=[Depends(get_current_user)]
+)
+
+app.include_router(
+    courses_router,
+    prefix="/api/courses",
+    tags=["Courses"],
+    dependencies=[Depends(get_current_user)]
+)
 
 @app.get("/health", tags=["Health"])
 async def health_check():

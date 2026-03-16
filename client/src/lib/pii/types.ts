@@ -27,4 +27,6 @@ export interface CarteTokensChiffree {
 export interface EnregistrementTableTokens extends CarteTokensChiffree {
   documentId: string; // identifiant unique du document (relie l'enregistrement au bon document)
   creeA: Date;        // date de création — utile pour nettoyer les anciens enregistrements
+  entityCount?: number; // Nombre d'entités détectées (pour l'UI)
+  categories?: string[]; // Catégories détectées (pour l'UI)
 }

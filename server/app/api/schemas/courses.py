@@ -23,6 +23,7 @@ class CourseUpdate(BaseModel):
 
 class Course(CourseBase):
     id: str
+    user_id: str
     status: str
     created_at: datetime
     updated_at: datetime

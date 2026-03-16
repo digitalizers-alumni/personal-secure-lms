@@ -1,4 +1,5 @@
 import logging
+from typing import List, Optional
 from app.rag.retriever import search
 from app.services.llm_service import llm_service
 
@@ -23,7 +24,11 @@ Question: {prompt}
 Answer:"""
 
 
-async def run_rag_pipeline(prompt: str, user_id: int | None = None) -> dict:
+async def run_rag_pipeline(
+    prompt: str, 
+    user_id: Optional[str] = None, 
+    doc_ids: Optional[List[int]] = None
+) -> dict:
     """
     Full RAG pipeline:
     1. Extract keywords from prompt via LLM
@@ -40,7 +45,7 @@ async def run_rag_pipeline(prompt: str, user_id: int | None = None) -> dict:
 
     # Step 2 — RAG retrieval using full prompt + keywords combined
     search_query = prompt + " " + " ".join(keywords)
-    chunks = search(query=search_query, top_k=5, user_id=user_id)
+    chunks = search(query=search_query, top_k=5, user_id=user_id, doc_ids=doc_ids)
 
     # Step 3 — build augmented prompt
     if chunks:
