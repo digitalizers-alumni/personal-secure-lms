@@ -111,7 +111,7 @@ async def generate_course(
 The course must follow this exact structure:
 {{
   "title": "Course Title",
-  "lesson_content": "Full lesson content in Markdown format, very detailed and pedagogical.",
+  "lesson_content": "Full lesson content in Markdown format, very detailed and pedagogical. ENSURE ALL NEWLINES ARE EXPLICITLY ESCAPED AS \\\\n (double backslash).",
   "quiz": [
     {{
       "question": "Question text?",
@@ -130,7 +130,8 @@ CRITICAL RULES:
 4. The difficulty should be: {request.difficulty}.
 5. Use the provided context to GROUND the course content. If the context is insufficient, use your general knowledge but prioritize the context.
 6. Return ONLY the JSON object, no preamble or extra text.
-7. ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
+7. ENSURE ALL STRING VALUES, ESPECIALLY LESSON_CONTENT, ARE STRICTLY JSON-ESCAPED, WITH NEWLINES AS \\\\n. DO NOT ESCAPE SINGLE QUOTES ('') WITH A BACKSLASH. ESCAPE LITERAL BACKSLASHES AS \\\\ (double backslash).
+8. ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
 """
 
     context = ""
@@ -143,14 +144,12 @@ CRITICAL RULES:
     user_prompt = f"Topic: {request.topic}\nLearning Goal: {request.learning_goal}\n\nContext:\n{context or 'No specific context provided.'}"
 
     try:
-        raw_json = await llm_service.generate_json_response(user_prompt, system_prompt)
-        course_data = json.loads(raw_json)
+        course_data = await llm_service.generate_json_response(user_prompt, system_prompt)
         return CoursePackage(**course_data)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=502, detail="AI returned invalid JSON")
-    except Exception as e:
+    except HTTPException: # Catch only HTTPExceptions raised by llm_service
+        raise # Re-raise if it's an HTTPException
+    except Exception as e: # Catch other exceptions
         raise HTTPException(status_code=500, detail=str(e))
-
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_course(
     course_id: str, 
