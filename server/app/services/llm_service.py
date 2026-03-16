@@ -95,29 +95,23 @@ class LLMService:
                     json_string = llm_content # Fallback
 
                 try:
+                    # Attempt to parse as-is
                     return json.loads(json_string)
                 except json.JSONDecodeError as e:
-                    # If it fails, try to replace literal newlines that might be inside strings
-                    # (very basic attempt: find newlines that aren't followed by a key or closing brace)
-                    # A more robust but slower fix if needed
-                    logger.warning(f"Initial JSON parse failed: {e}. Attempting basic fixup...")
+                    logger.warning(f"Initial JSON parse failed: {e}. Attempting sanitization...")
                     try:
-                        # Find literal newlines and escape them
-                        # This is tricky without a proper state machine, but let's try a common LLM mistake fix
-                        fixed_string = json_string.replace("\n", "\\n")
-                        # But wait, this escapes REAL JSON structural newlines too. 
-                        # Actually, json.loads handles real newlines IF they are outside of strings.
-                        # The error 'Invalid control character' means they are INSIDE strings.
-                        
-                        # Let's try to just use strict=False which allows some control characters
-                        # but still fails on literal newlines in strings.
-                        return json.loads(json_string, strict=False)
-                    except Exception:
-                        logger.error(f"Failed to decode JSON from LLM content: {e}")
+                        # Common LLM mistake 1: Escaping single quotes as \' (invalid in JSON)
+                        # Common LLM mistake 2: Literal newlines in strings
+                        # Common LLM mistake 3: Mis-escaped backslashes
+                        sanitized_string = json_string.replace("\\'", "'")
+                        # If strict is False, some control characters are allowed, but not newlines in strings.
+                        return json.loads(sanitized_string, strict=False)
+                    except Exception as final_e:
+                        logger.error(f"Failed to decode JSON from LLM content after sanitization: {final_e}")
                         logger.error(f"Problematic JSON string (first 200 chars): {json_string[:200]!r}")
                         raise HTTPException(
                             status_code=502,
-                            detail=f"LLM Structure Error: Failed to parse JSON response - {str(e)}"
+                            detail=f"LLM Structure Error: Failed to parse JSON response - {str(final_e)}"
                         )
             except Exception as e:
                 logger.error(f"Structured LLM request failed: {e}")

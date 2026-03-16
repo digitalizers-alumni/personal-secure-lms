@@ -2,6 +2,10 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 
+from pydantic import BaseModel, computed_field
+from typing import Optional, List
+from datetime import datetime
+
 class CourseBase(BaseModel):
     title: str
     description: Optional[str] = None
@@ -31,11 +35,21 @@ class Course(CourseBase):
     status: str
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
-    # Aliases for frontend compatibility
-    lesson_content: Optional[str] = None
-    reward_title: Optional[str] = None
-    reward_message: Optional[str] = None
+
+    @computed_field
+    @property
+    def lesson_content(self) -> Optional[str]:
+        return self.content_markdown
+
+    @computed_field
+    @property
+    def reward_title(self) -> Optional[str]:
+        return self.reward.get("reward_title") if self.reward else None
+
+    @computed_field
+    @property
+    def reward_message(self) -> Optional[str]:
+        return self.reward.get("reward_message") if self.reward else None
 
     class Config:
         from_attributes = True

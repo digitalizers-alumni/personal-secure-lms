@@ -58,12 +58,6 @@ def get_course(
     ).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found or access denied")
-    
-    # Aliases for frontend
-    course.lesson_content = course.content_markdown
-    if course.reward:
-        course.reward_title = course.reward.get("reward_title")
-        course.reward_message = course.reward.get("reward_message")
         
     return course
 
@@ -148,8 +142,9 @@ JSON & FORMATTING RULES:
 2. IMPORTANT: All newlines in 'lesson_content' MUST be escaped as the literal string '\\n' (a backslash followed by 'n').
 3. DO NOT use actual carriage returns or literal newlines inside the JSON string values.
 4. Use standard JSON escaping for double quotes (\").
-5. Return ONLY the JSON object, NO markdown code blocks, no preamble, and no extra text.
-6. GROUND the content in the provided context. If no context, use your expert knowledge.
+5. NEVER escape single quotes (') with a backslash. Write them normally as '.
+6. Return ONLY the JSON object, NO markdown code blocks, no preamble, and no extra text.
+7. GROUND the content in the provided context. If no context, use your expert knowledge.
 
 ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
 """
@@ -186,11 +181,6 @@ ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
         db.add(db_course)
         db.commit()
         db.refresh(db_course)
-
-        # Set aliases for frontend compatibility
-        db_course.lesson_content = db_course.content_markdown
-        db_course.reward_title = db_course.reward.get("reward_title")
-        db_course.reward_message = db_course.reward.get("reward_message")
         
         return db_course
     except HTTPException: # Catch only HTTPExceptions raised by llm_service
