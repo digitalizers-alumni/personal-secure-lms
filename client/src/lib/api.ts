@@ -1,4 +1,4 @@
-export const API_URL = import.meta.env.VITE_API_URL;
+export const API_URL = import.meta.env.VITE_API_URL || "";
 
 export interface User {
   id: number;
@@ -34,7 +34,7 @@ export async function uploadDocumentToRAG(file: File): Promise<{ doc_id: number;
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.detail || "Upload failed");
+    throw new Error(error.detail || "Upload failed, file already exists in database");
   }
 
   return response.json();
