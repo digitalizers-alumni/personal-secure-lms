@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import { LanguageSelector } from "./components/LanguageSelector";
 import AdminGuard from "./components/AdminGuard";
 import UsersPage from "./pages/Users";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="/documents" element={<AuthGuard><Documents /></AuthGuard>} />
                 <Route path="/ai-prompt" element={<AuthGuard><AIPrompt /></AuthGuard>} />
                 <Route path="/create-course" element={<AuthGuard><CreateCourse /></AuthGuard>} />
+                <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
                 <Route path="/users" element={<AuthGuard><AdminGuard><UsersPage/></AdminGuard></AuthGuard> } />
                 <Route path="*" element={<NotFound />} />
               </Routes>
