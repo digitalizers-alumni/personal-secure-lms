@@ -1,4 +1,4 @@
-import os
+import os # Re-adding os import
 import logging
 from app.api.core.security import get_current_user
 from app.models.users import User
@@ -19,9 +19,17 @@ router = APIRouter()
 
 STORAGE_DIR = os.getenv("STORAGE_DIR", "./data/documents")
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
+ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "text/plain",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+}
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
     os.makedirs(STORAGE_DIR, exist_ok=True)
+    
+    # 1. Check extension
     extension = os.path.splitext(file.filename)[1].lower()
     
     if extension not in ALLOWED_EXTENSIONS:
