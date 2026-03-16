@@ -14,15 +14,52 @@ router = APIRouter()
 
 STORAGE_DIR = os.getenv("STORAGE_DIR", "./data/documents")
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
+ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "text/plain",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+}
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 def _save_file(file: UploadFile) -> str:
     os.makedirs(STORAGE_DIR, exist_ok=True)
+    
+    # 1. Check extension
     extension = os.path.splitext(file.filename)[1].lower()
     if extension not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=415, detail=f"Unsupported file type")
+        raise HTTPException(
+            status_code=415, 
+            detail=f"Extension '{extension}' non supportée. Extensions autorisées : {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+    
+    # 2. Check MIME type
+    if file.content_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=415, 
+            detail=f"Type MIME '{file.content_type}' non supporté pour cette extension."
+        )
+
+    # 3. Read content to check size and empty file
+    content = file.file.read()
+    file_size = len(content)
+    
+    if file_size == 0:
+        raise HTTPException(status_code=400, detail="Le fichier est vide.")
+        
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413, 
+            detail=f"Fichier trop lourd ({file_size} octets). La limite est de {MAX_FILE_SIZE} octets (50 Mo)."
+        )
+
     file_path = os.path.join(STORAGE_DIR, file.filename)
-    with open(file_path, "wb") as f:
-        f.write(file.file.read())
+    try:
+        with open(file_path, "wb") as f:
+            f.write(content)
+    except Exception as e:
+        logger.error(f"Erreur lors de l'écriture du fichier : {str(e)}")
+        raise HTTPException(status_code=500, detail="Erreur interne lors de la sauvegarde du fichier.")
+        
     return file_path
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=201)
