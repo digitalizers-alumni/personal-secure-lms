@@ -27,7 +27,7 @@ def perform_login(email: str, password: str, db: Session) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = create_access_token(subject=user.id, role=user.user_role.value)
+    access_token = create_access_token(user_id=user.id, role=user.user_role.value)
 
     return {
         "access_token": access_token,
