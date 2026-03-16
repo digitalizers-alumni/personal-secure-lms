@@ -8,11 +8,6 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.users import User
 from app.api.core.config import settings
-
-# Wait, I saw PyJWT in requirements, butjose is often used with FastAPI. 
-# Let me stick to PyJWT if that's what's there, or I'll use passlib for hashing.
-# requirements.txt had PyJWT.
-
 import jwt as pyjwt
 
 SECRET_KEY = settings.SECRET_KEY
@@ -28,13 +23,13 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
-def create_access_token(subject: Union[str, Any], role: str, expires_delta: timedelta = None) -> str:
+def create_access_token(user_id: Union[str, Any], role: str, expires_delta: timedelta = None) -> str:
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    to_encode = {"exp": expire, "sub": str(subject), "role": role}
+    to_encode = {"exp": expire, "sub": str(user_id), "role": role}
     encoded_jwt = pyjwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -54,14 +49,14 @@ def get_current_user(
 ) -> User:
     """Dependency to resolve the actual database user from JWT"""
     payload = decode_token(token)
-    email: str = payload.get("sub")
-    if email is None:
+    user_id: str = payload.get("sub")
+    if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         )
     
-    user = db.query(User).filter(User.email == email).first()
+    user = db.query(User).filter(User.user_id == user_id).first()
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

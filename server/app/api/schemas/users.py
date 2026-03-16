@@ -25,9 +25,14 @@ class UserUpdate(BaseModel):
     user_role: Optional[UserRole] = None
     is_active: Optional[bool] = None
 
+class UserUpdatePassword(BaseModel):
+    current_password: str
+    new_password: str
+
 class User(UserBase):
     id: str
     is_active: bool
+    is_deleted: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
 
