@@ -1,6 +1,6 @@
 services:
   qdrant:
-    image: haktansuren/qdrant-pi5-fixed-jemalloc:latest
+    image: qdrant/qdrant:latest
     container_name: qdrant-pi
     ports:
       - "6333:6333"
@@ -94,7 +94,8 @@ services:
       - MODEL_CACHE_DIR=/app/data/models
       - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/rag_lms.db}
       - QDRANT_HOST=qdrant
-      - REDIS_HOST=redis # Added to ensure api service can connect to Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       # - HUGGINGFACE_HUB_OFFLINE=1         # if bge-m3 is already downloaded on server side
       # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
       # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side

@@ -20,23 +20,24 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting up Atlas Backend")
+    logger.info("Starting up Lumina Backend")
     init_db()
     embedder.load()
     from app.rag.indexer import ensure_collection
     ensure_collection()
-    logger.info("Atlas Backend ready")
+    logger.info("Lumina Backend ready")
     yield
 
 
 app = FastAPI(
-    title="Atlas Backend",
+    title="Lumina Backend",
     description="RAG API — document ingestion and LLM-augmented query service",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False
 )
 
-# Configuration CORS
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -46,7 +47,7 @@ app.add_middleware(
 )
 
 # Auth route: /api/token
-app.include_router(auth_router, prefix="/api", tags=["Auth"])
+app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 
 # Protected routes (require JWT)
 app.include_router(

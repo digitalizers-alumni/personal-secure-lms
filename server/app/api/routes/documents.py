@@ -4,6 +4,7 @@ from app.api.core.security import get_current_user
 from app.models.users import User
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List, Tuple
 from app.db.database import get_db
 from app.models.documents import Document
@@ -86,31 +87,26 @@ def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=201)
 async def upload_document(
-    file: UploadFile = File(...), 
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    user_id = current_user.email
-    file_path, hash_sha256, mime_type, file_size = _save_file(file)
-    
-    # Extra metadata for the JSON field
-    metadata_json = {
-        "original_filename": file.filename,
-        "size_bytes": file_size,
-        "extension": os.path.splitext(file.filename)[1].lower()
-    }
+    file_path, hash_sha256, mime_type, file_size = _save_file(file)  # ← déstructure le tuple
 
     doc = Document(
-        user_id=user_id, 
-        filename=file.filename, 
-        file_path=file_path, 
+        user_id=current_user.id,
+        filename=file.filename,
+        file_path=file_path,
         mime_type=mime_type,
         hash_sha256=hash_sha256,
-        metadata_json=metadata_json,
         status="pending"
     )
     db.add(doc)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=f"File '{file.filename}' already exists")
     db.refresh(doc)
     ingest_document.delay(doc.id, doc.file_path, doc.user_id)
     return DocumentUploadResponse(doc_id=doc.id, filename=doc.filename, status=doc.status)
@@ -121,7 +117,7 @@ async def list_documents(
     current_user: User = Depends(get_current_user)
 ):
     return db.query(Document).filter(
-        Document.user_id == current_user.email, 
+        Document.user_id == current_user.id,
         Document.is_deleted == False
     ).order_by(Document.created_at.desc()).all()
 
@@ -132,8 +128,8 @@ async def get_document_status(
     current_user: User = Depends(get_current_user)
 ):
     doc = db.query(Document).filter(
-        Document.id == doc_id, 
-        Document.user_id == current_user.email,
+        Document.id == doc_id,
+        Document.user_id == current_user.id,
         Document.is_deleted == False
     ).first()
     if not doc:

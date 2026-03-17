@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Shield, User, Loader2 } from "lucide-react";
+import { ArrowLeft, Shield, User, Loader2, Eye, EyeOff} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRole } from "@/contexts/RoleContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "@/hooks/use-toast";
-import { API_URL } from "@/lib/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,7 +17,8 @@ const Login = () => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,15 +29,10 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/login`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: username,
-          password: password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: username, password }),
       });
 
       if (!response.ok) {
@@ -44,7 +40,7 @@ const Login = () => {
       }
 
       const data = await response.json();
-      login(data.access_token, data.role.toLowerCase() as any);
+      login(data.access_token, data.role?.toLowerCase() === "admin" ? "admin" : "user");
       navigate("/dashboard");
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erreur de connexion", description: err.message });
@@ -115,14 +111,26 @@ const Login = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="bg-background/50 border-border"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-background/50 border-border pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword
+                    ? <EyeOff className="w-4 h-4" />
+                    : <Eye className="w-4 h-4" />
+                  }
+                </button>
+              </div>
             </div>
             
             <Button
@@ -144,18 +152,27 @@ const Login = () => {
             variant="outline"
             disabled={isLoading}
             onClick={() => {
-              setUsername("admin@lumina-swiss.ch");
-              setPassword("admin123");
-              // Submit after state update on next tick
-              setTimeout(() => {
-                const form = document.querySelector("form");
-                if (form) form.requestSubmit();
-              }, 50);
+              login("dev-token-admin", "admin");
+              navigate("/dashboard");
             }}
-            className="w-full font-semibold h-12 border-silver/30 hover:bg-silver/10 gap-2"
+            className="w-full font-semibold h-12 border-yellow-500/30 hover:bg-yellow-500/10 text-yellow-600 gap-2"
           >
             <Shield className="w-4 h-4" />
-            Raccourci Test (admin)
+            Bypass Login (dev only)
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isLoading}
+            onClick={() => {
+              login("dev-token-user", "user");
+              navigate("/dashboard");
+            }}
+            className="w-full font-semibold h-12 border-blue-500/30 hover:bg-blue-500/10 text-blue-600 gap-2"
+          >
+            <User className="w-4 h-4" />
+            Bypass Login — User (dev only)
           </Button>
 
           <p className="text-[11px] text-center text-muted-foreground mt-3">

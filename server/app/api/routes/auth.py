@@ -1,7 +1,3 @@
-"""
-Authentication route — issues JWT tokens for login.
-For demo/MVP purposes, any username/password combination is accepted.
-"""
 import jwt
 import datetime
 from fastapi import APIRouter, HTTPException, Depends
@@ -27,12 +23,12 @@ def perform_login(email: str, password: str, db: Session) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = create_access_token(subject=user.email, role=user.user_role.value)
+    access_token = create_access_token(user_id=user.id, role=user.user_role.value)
 
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "role": user.user_role.value,
+        "role": user.user_role.value.lower(),
     }
 
 @router.post("/token", response_model=Token)
