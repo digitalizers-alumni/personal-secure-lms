@@ -9,30 +9,36 @@ Lumina Swiss is a privacy-first Learning Management System designed for organiza
 
 ## Architecture
 
-                    [ Client ]
-┌──────────────────────────────────────────────────────┐
-│  Interface (JS + typescript)                         │
-│        ↓                                             │
-│  Local Anonymizer (PII + NER + tokenizer)            │
-│        ↓                                             │
-│  Local Token storage                                 │
-│        ↓                                             │
-│  Upload anonymized documents →→→→→→→→→→→→→→→→→→→→→┐  │
-│  Prompt LLM to create a personalized course →→→→→→│  │
-└──────────────────────────────────────────────────────┘
-                                                    │
-                    [ Backend ]                     ▼
-┌──────────────────────────────────────────────────────┐
-│  API endpoint                                        │
-│        ↓                                             │
-│  Ingest document in RAG: bge-m3 + Qdrant             │
-│        ↓                                             │
-│  RAG Engine (query enrichment)                       │
-│        ↓                                             │
-│  Cloud LLM (course generation / responses)           │
-│        ↓                                             │
-│  Response returned to  client ←←←←←←←←←←←←←←←←←←←←←←-┘
-└──────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Client["🖥️ Client (Browser)"]
+        A[Interface TypeScript / React]
+        B[Local Anonymizer\nPII + NER + Tokenizer]
+        C[Local Token Storage]
+        D[Upload anonymized documents]
+        E[Prompt — Personalized course request]
+    end
+
+    subgraph Backend["⚙️ Backend (Raspberry Pi / Cloud)"]
+        F[API Endpoint]
+        G[RAG Ingestion\n bge-m3 + Qdrant]
+        H[RAG Engine\n Query enrichment]
+        I[Cloud LLM — Infomaniak\n Course generation / Responses]
+        J[Response returned to client]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    C --> E
+    D -->|HTTPS anonymized doc| F
+    E -->|HTTPS prompt| F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J -->|HTTPS response| A
+```
 
 ## Submission & Deployment
 LuminaSwiss is designed for deployment on local infrastructure and with Swiss base solution LLMs (e.g., Infomaniak Jelastic/Public Cloud).
@@ -45,25 +51,18 @@ LuminaSwiss is designed for deployment on local infrastructure and with Swiss ba
 - **Tokenization**: Sensitive data is replaced by tokens (e.g., `[[PII_001]]`) before upload.
 - **RAG-First**: All LLM queries are grounded in your private, anonymized document base.
 
-## Quick Start
+## Requirements
 
-### 1. requirements
-
-#### Client
+### Client
 - **Node** (v22+)
 
-#### Server
+### Server
 - **Python** (v3.11+)
 - **Docker** (v29.0+)
 - **Ubuntu-server 24.04 or Debian Bookworm**
 - **Infomaniak LLM API token Key**
 
 
-### 2. Installation
+## Installation
 
 See README.md in both server/ and client/
-
-## 🎯 Demo Login
-For the demo, you can use:
-- **Email**: `admin@lumina-swiss.ch`
-- **Password**: `admin123`
