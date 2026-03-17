@@ -26,6 +26,7 @@ const navItems: NavItem[] = [
   { labelKey: "nav_dashboard",    icon: LayoutDashboard, path: "/dashboard"     },
   { labelKey: "nav_documents",    icon: FileText,        path: "/documents"     },
   { labelKey: "nav_ai_prompt",    icon: Sparkles,        path: "/ai-prompt"     },
+  { labelKey: "nav_formations",   icon: FileText,        path: "/courses"       },
   { labelKey: "nav_create_course",icon: GraduationCap,   path: "/create-course" },
 ];
 

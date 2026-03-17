@@ -138,7 +138,7 @@ CONTENT RULES for 'lesson_content':
 6. DO NOT be concise. Be generous with explanations.
 
 JSON & FORMATTING RULES:
-1. Return EXACTLY 10 quiz questions with 4 options each.
+1. Return EXACTLY {request.num_questions} quiz questions with 4 options each.
 2. IMPORTANT: All newlines in 'lesson_content' MUST be escaped as the literal string '\\n' (a backslash followed by 'n').
 3. DO NOT use actual carriage returns or literal newlines inside the JSON string values.
 4. Use standard JSON escaping for double quotes (\").

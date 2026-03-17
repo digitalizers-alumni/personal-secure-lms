@@ -22,9 +22,15 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     logger.info("Starting up Lumina Backend")
     init_db()
-    embedder.load()
-    from app.rag.indexer import ensure_collection
-    ensure_collection()
+    try:
+        embedder.load()
+        from app.rag.indexer import ensure_collection
+        ensure_collection()
+        logger.info("RAG services initialized")
+    except Exception as e:
+        logger.warning(f"RAG services failed to start (Qdrant/Model issues): {e}")
+        logger.info("Continuing in degraded mode (UI testing only)")
+    
     logger.info("Lumina Backend ready")
     yield
 
