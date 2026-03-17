@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { User, Shield, Loader2, KeyRound, Save } from "lucide-react";
 import { useRole } from "@/contexts/RoleContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { getMe, updateMe, updateMyPassword, type User as UserType } from "@/lib/api";
 import {
   Dialog, DialogContent, DialogHeader,
@@ -14,6 +15,7 @@ import {
 
 const Profile = () => {
   const { role } = useRole();
+  const { t } = useLanguage();
 
   const [user, setUser] = useState<UserType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +41,7 @@ const Profile = () => {
         setLastName(data.last_name ?? "");
         setJobFunction(data.job_function ?? "");
       })
-      .catch((err) => toast({ variant: "destructive", title: "Erreur", description: err.message }))
+      .catch((err) => toast({ variant: "destructive", title: t("login_error"), description: err.message }))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -52,9 +54,9 @@ const Profile = () => {
         job_function: jobFunction || undefined,
       });
       setUser(updated);
-      toast({ title: "Profil mis à jour" });
+      toast({ title: t("profile_updated") });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message });
+      toast({ variant: "destructive", title: t("login_error"), description: err.message });
     } finally {
       setIsSavingProfile(false);
     }
@@ -64,16 +66,16 @@ const Profile = () => {
     if (newPassword !== confirmPassword) {
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Les mots de passe ne correspondent pas.",
+        title: t("login_error"),
+        description: t("passwords_dont_match"),
       });
       return;
     }
     if (newPassword.length < 8) {
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Le mot de passe doit contenir au moins 8 caractères.",
+        title: t("login_error"),
+        description: t("password_min_length"),
       });
       return;
     }
@@ -84,9 +86,9 @@ const Profile = () => {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      toast({ title: "Mot de passe mis à jour" });
+      toast({ title: t("password_updated") });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message });
+      toast({ variant: "destructive", title: t("login_error"), description: err.message });
     } finally {
       setIsSavingPassword(false);
     }
@@ -108,9 +110,9 @@ const Profile = () => {
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-3xl font-bold text-foreground">Mon profil</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t("my_profile")}</h1>
           <p className="text-muted-foreground mt-1">
-            Gérez vos informations personnelles
+            {t("manage_personal_info")}
           </p>
         </motion.div>
 
@@ -133,8 +135,8 @@ const Profile = () => {
             <p className="text-sm text-muted-foreground">{user?.email}</p>
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
               {role === "admin"
-                ? <><Shield className="w-3.5 h-3.5 text-primary" /> Administrateur</>
-                : <><User className="w-3.5 h-3.5" /> Utilisateur</>
+                ? <><Shield className="w-3.5 h-3.5 text-primary" /> {t("role_admin")}</>
+                : <><User className="w-3.5 h-3.5" /> {t("role_user")}</>
               }
             </span>
           </div>
@@ -149,12 +151,12 @@ const Profile = () => {
         >
           <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <User className="w-4 h-4 text-primary" />
-            Informations personnelles
+            {t("personal_info")}
           </h2>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Prénom</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("first_name")}</label>
               <Input
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
@@ -162,7 +164,7 @@ const Profile = () => {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Nom</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("last_name")}</label>
               <Input
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
@@ -172,7 +174,7 @@ const Profile = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Email</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("email")}</label>
             <Input
               value={user?.email ?? ""}
               disabled
@@ -182,12 +184,12 @@ const Profile = () => {
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">
-              Fonction (optionnel)
+              {t("job_function_optional")}
             </label>
             <Input
               value={jobFunction}
               onChange={(e) => setJobFunction(e.target.value)}
-              placeholder="Ex: Développeur, Manager..."
+              placeholder={t("job_function_placeholder")}
               className="bg-background/50"
             />
           </div>
@@ -202,7 +204,7 @@ const Profile = () => {
                 ? <Loader2 className="w-4 h-4 animate-spin" />
                 : <Save className="w-4 h-4" />
               }
-              Sauvegarder
+              {t("save")}
             </Button>
           </div>
         </motion.div>
@@ -216,13 +218,13 @@ const Profile = () => {
         >
           <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-primary" />
-            Sécurité
+            {t("security")}
           </h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-foreground">Mot de passe</p>
+              <p className="text-sm text-foreground">{t("password")}</p>
               <p className="text-xs text-muted-foreground">
-                Modifiez votre mot de passe de connexion
+                {t("change_login_password")}
               </p>
             </div>
             <Button
@@ -231,7 +233,7 @@ const Profile = () => {
               className="gap-2"
             >
               <KeyRound className="w-4 h-4" />
-              Modifier
+              {t("edit")}
             </Button>
           </div>
         </motion.div>
@@ -242,12 +244,12 @@ const Profile = () => {
       <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
         <DialogContent className="glass-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Modifier le mot de passe</DialogTitle>
+            <DialogTitle className="text-foreground">{t("change_password")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                Mot de passe actuel
+                {t("current_password")}
               </label>
               <Input
                 type="password"
@@ -258,7 +260,7 @@ const Profile = () => {
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                Nouveau mot de passe
+                {t("new_password")}
               </label>
               <Input
                 type="password"
@@ -269,7 +271,7 @@ const Profile = () => {
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                Confirmer le mot de passe
+                {t("confirm_password")}
               </label>
               <Input
                 type="password"
@@ -281,7 +283,7 @@ const Profile = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>
-              Annuler
+              {t("cancel")}
             </Button>
             <Button
               onClick={handleSavePassword}
@@ -289,7 +291,7 @@ const Profile = () => {
               className="gradient-primary text-primary-foreground gap-2"
             >
               {isSavingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
-              Modifier
+              {t("edit")}
             </Button>
           </DialogFooter>
         </DialogContent>

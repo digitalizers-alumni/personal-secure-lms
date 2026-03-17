@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Shield, User, Loader2, Eye, EyeOff} from "lucide-react";
+import { ArrowLeft, Loader2, Eye, EyeOff} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,7 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
-      toast({ variant: "destructive", title: "Erreur", description: "Veuillez remplir tous les champs" });
+      toast({ variant: "destructive", title: t("login_error"), description: t("login_fill_fields") });
       return;
     }
 
@@ -36,14 +36,14 @@ const Login = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Identifiants incorrects");
+        throw new Error(t("login_error_desc"));
       }
 
       const data = await response.json();
       login(data.access_token, data.role?.toLowerCase() === "admin" ? "admin" : "user");
       navigate("/dashboard");
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur de connexion", description: err.message });
+      toast({ variant: "destructive", title: t("login_error"), description: err.message });
     } finally {
       setIsLoading(false);
     }
@@ -91,14 +91,14 @@ const Login = () => {
             <div>
               <h1 className="text-2xl font-bold text-foreground">{t("login_title")}</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Entrez vos identifiants pour accéder à votre espace sécurisé
+                {t("login_subtitle")}
               </p>
             </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Email</Label>
+              <Label htmlFor="username">{t("login_email")}</Label>
               <Input
                 id="username"
                 type="email"
@@ -110,7 +110,7 @@ const Login = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password">{t("login_password")}</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -138,46 +138,10 @@ const Login = () => {
               disabled={isLoading}
               className="w-full gradient-primary text-primary-foreground font-semibold h-12 mt-4"
             >
-              {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : "Se connecter"}
+              {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : t("login_submit")}
             </Button>
           </form>
 
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">ou</span></div>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isLoading}
-            onClick={() => {
-              login("dev-token-admin", "admin");
-              navigate("/dashboard");
-            }}
-            className="w-full font-semibold h-12 border-yellow-500/30 hover:bg-yellow-500/10 text-yellow-600 gap-2"
-          >
-            <Shield className="w-4 h-4" />
-            Bypass Login (dev only)
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isLoading}
-            onClick={() => {
-              login("dev-token-user", "user");
-              navigate("/dashboard");
-            }}
-            className="w-full font-semibold h-12 border-blue-500/30 hover:bg-blue-500/10 text-blue-600 gap-2"
-          >
-            <User className="w-4 h-4" />
-            Bypass Login — User (dev only)
-          </Button>
-
-          <p className="text-[11px] text-center text-muted-foreground mt-3">
-            Utilisez vos identifiants réels. Le raccourci est réservé aux tests QA.
-          </p>
         </div>
       </motion.div>
     </div>

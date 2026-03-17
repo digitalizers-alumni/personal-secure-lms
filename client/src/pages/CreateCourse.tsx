@@ -133,7 +133,7 @@ const CreateCourse: React.FC = () => {
     setTopic("Cybersécurité");
     setGoal("Comprendre les bases de la protection des données");
     setStep('lesson');
-    toast.success("Mode démo activé !");
+    toast.success(t("demo_activated"));
   };
 
   const handleQuizFinish = (finalScore: number) => {

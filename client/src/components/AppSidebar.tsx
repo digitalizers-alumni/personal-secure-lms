@@ -73,7 +73,7 @@ const AppSidebar = () => {
                 <span className="text-gradient-red">Swiss</span>
               </span>
               <span className="text-xs block text-sidebar-foreground -mt-1">
-                Knowledge Engine
+                {t("knowledge_engine")}
               </span>
             </motion.div>
           )}
@@ -178,7 +178,7 @@ const AppSidebar = () => {
                 exit={{ opacity: 0, width: 0 }}
                 className="text-sm font-medium overflow-hidden whitespace-nowrap"
               >
-                Mon profil
+                {t("my_profile")}
               </motion.span>
             )}
           </AnimatePresence>
