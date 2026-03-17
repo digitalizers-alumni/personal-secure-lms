@@ -19,5 +19,5 @@ class CourseGenerationRequest(BaseModel):
     difficulty: str # e.g., "Débutant", "Intermédiaire", "Avancé"
     passing_score: int = 70
     num_questions: int = 10
-    doc_ids: Optional[List[int]] = None
+    selected_doc_ids: Optional[List[int]] = None
     additional_instructions: Optional[str] = None

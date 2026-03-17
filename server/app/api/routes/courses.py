@@ -150,9 +150,9 @@ ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
 """
 
     context = ""
-    if request.doc_ids:
+    if request.selected_doc_ids:
         query = f"{request.topic} {request.learning_goal}"
-        chunks = search(query=query, top_k=8, user_id=current_user.email, doc_ids=request.doc_ids)
+        chunks = search(query=query, top_k=8, user_id=current_user.email, doc_ids=request.selected_doc_ids)
         if chunks:
             context = "\n\n".join([f"Source {i+1}:\n{c['text']}" for i, c in enumerate(chunks)])
 
