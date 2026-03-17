@@ -48,7 +48,7 @@ const translations: Record<Locale, Record<string, string>> = {
     privacy_hosting_desc: "Serveurs chez Infomaniak, Suisse. Pas de CLOUD Act américain, pas de transfert de données hors frontières, pas de zone grise juridique.",
     privacy_pii_label: "Couche 3 — Architecture",
     privacy_pii_title: "L'IA ne voit jamais vos données personnelles",
-    privacy_pii_desc: "Notre pipeline de détection PII (NER multilingue + 24 patterns regex FR/CH + Presidio) supprime les données sensibles avant tout traitement IA.",
+    privacy_pii_desc: "Notre pipeline de détection PII (NER multilingue + 24 patterns regex FR/CH) supprime les données sensibles avant tout traitement IA.",
     // Landing — Use Cases
     usecases_title: "Des cas concrets, pas des promesses",
     usecase_onboarding_title: "Onboarding des nouveaux employés",
@@ -62,7 +62,7 @@ const translations: Record<Locale, Record<string, string>> = {
     arch_client: "Client (navigateur)",
     arch_client_desc: "Détection PII côté client via NER (Hugging Face BERT multilingue) + 24 patterns regex FR/CH. Chiffrement local, stockage IndexedDB. L'IA n'accède qu'au texte anonymisé.",
     arch_server: "Serveur (Suisse)",
-    arch_server_desc: "API FastAPI, détection renforcée via Presidio + spaCy FR, moteur RAG avec pgvector. Hébergé chez Infomaniak, Genève.",
+    arch_server_desc: "API FastAPI, moteur RAG avec pgvector. Hébergé chez Infomaniak, Genève.",
     // Landing — Final CTA
     cta_title: "Prêt à transformer vos documents en formations ?",
     cta_subtitle: "Explorez la plateforme et voyez comment l'IA peut former vos équipes — sans jamais compromettre leur vie privée.",
@@ -917,7 +917,7 @@ const translations: Record<Locale, Record<string, string>> = {
     privacy_hosting_desc: "Servers at Infomaniak, Switzerland. No US CLOUD Act, no cross-border data transfers, no legal gray zones.",
     privacy_pii_label: "Layer 3 — Architecture",
     privacy_pii_title: "The AI never sees your personal data",
-    privacy_pii_desc: "Our PII detection pipeline (multilingual NER + 24 FR/CH regex patterns + Presidio) strips sensitive data before any AI processing.",
+    privacy_pii_desc: "Our PII detection pipeline (multilingual NER + 24 FR/CH regex patterns) strips sensitive data before any AI processing.",
     // Landing — Use Cases
     usecases_title: "Real use cases, not promises",
     usecase_onboarding_title: "New employee onboarding",
@@ -931,7 +931,7 @@ const translations: Record<Locale, Record<string, string>> = {
     arch_client: "Client (browser)",
     arch_client_desc: "Client-side PII detection via NER (Hugging Face multilingual BERT) + 24 FR/CH regex patterns. Local encryption, IndexedDB storage. The AI only accesses anonymized text.",
     arch_server: "Server (Switzerland)",
-    arch_server_desc: "FastAPI backend, enhanced detection via Presidio + spaCy FR, RAG engine with pgvector. Hosted at Infomaniak, Geneva.",
+    arch_server_desc: "FastAPI backend, RAG engine with pgvector. Hosted at Infomaniak, Geneva.",
     // Landing — Final CTA
     cta_title: "Ready to turn your documents into training?",
     cta_subtitle: "Explore the platform and see how AI can train your teams — without ever compromising their privacy.",

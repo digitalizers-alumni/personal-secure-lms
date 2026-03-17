@@ -344,7 +344,7 @@ const Landing = () => {
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">{t("arch_server_desc")}</p>
               <div className="flex flex-wrap gap-2 mt-4">
-                {["FastAPI", "spaCy NER", "Presidio", "Infomaniak"].map((tech) => (
+                {["FastAPI", "pgvector", "Infomaniak"].map((tech) => (
                   <span key={tech} className="text-[10px] font-bold bg-silver/10 text-silver px-2 py-0.5 rounded-full">{tech}</span>
                 ))}
               </div>
