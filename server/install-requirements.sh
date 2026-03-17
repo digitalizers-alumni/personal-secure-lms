@@ -1,61 +1,37 @@
 #!/bin/bash
-
-# Automated setup script for Raspberry Pi BGE-M3 + Qdrant + Testing
-
 set -e  # Exit on error
-
-echo "Raspberry Pi RAG Setup"
-echo ""
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
+
+echo "Lumina backend setup"
+echo ""
 
 # Check Python version
-echo "[1/5] Checking Python version"
+echo "[1/3] Checking Python version"
 PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
 MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
 
 # Compare python versions
-if [[ $MAJOR -lt 3 ]] || [[ $MAJOR -eq 3 && $MINOR -lt 9 ]]; then
-    echo -e "${RED} Python 3.9+ required (found $PYTHON_VERSION)${NC}"
+if [[ $MAJOR -lt 3 ]] || [[ $MAJOR -eq 3 && $MINOR -lt 11 ]]; then
+    echo -e "${RED} Python 3.11+ required (found $PYTHON_VERSION)${NC}"
     exit 1
 fi
 echo -e "${GREEN} Python $PYTHON_VERSION OK ${NC}"
 echo ""
 
-# Create virtual environment
-echo "[2/5] Setting up Python virtual environment"
-if [ -d "venv" ]; then
-    echo "(venv already exists)"
-else
-    python3 -m venv venv
-    echo -e "${GREEN} venv created ${NC}"
-fi
-
-# Activate venv
-source venv/bin/activate
-echo "venv activated"
-echo ""
-
 # Upgrade pip
-echo "[3/5] Upgrading pip, setuptools, wheel"
+echo "[2/3] Upgrading pip, setuptools, wheel"
 pip install --upgrade pip setuptools wheel --quiet
 echo -e "${GREEN} pip upgraded ${NC}"
 echo ""
 
-# Install requirements
-echo "[4/5] Installing dependencies for bge-m3 model and creating data directories for qdrant, redis and models"
-pip install sentence-transformers --quiet
-mkdir -p data/qdrant data/redis data/models data/documents
-echo -e "${GREEN} Dependencies installed ${NC}"
-echo ""
-
 # Check Docker is installed
-echo "[5/5] Docker installation check"
+echo "[3/3] Docker installation check"
 if ! command -v docker &> /dev/null; then
     echo -e "${YELLOW}Docker not found on this system${NC}"
     echo ""
@@ -88,40 +64,7 @@ else
     echo -e "${GREEN}Docker already installed ${NC}"
 fi
 
-# Ask if user wants to download BGE-M3 model
-echo ""
-echo -n "Would you like to download BGE-M3 model now? (y/n) - This will take ~1.5GB and 5-10 minutes : "
-read -r DOWNLOAD_MODEL
 
-if [[ "$DOWNLOAD_MODEL" == "yes" || "$DOWNLOAD_MODEL" == "y" || "$DOWNLOAD_MODEL" == "Y" || "$DOWNLOAD_MODEL" == "YES" ]]; then
-    echo ""
-    echo -e "${BLUE}Downloading BGE-M3 model${NC}"
-    echo ""
-    
-    # Make sure venv is activated
-    source venv/bin/activate
-    
-    # Run the download script
-    python rag/download_model.py
-    
-    echo ""
-    echo -e "${GREEN}BGE-M3 model downloaded successfully! ${NC}"
-    echo ""
-else
-    echo -e "${YELLOW}Model download skipped ${NC}"
-    echo "You can download it later with:"
-    echo "   $ source venv/bin/activate"
-    echo "   $ python download_model.py"
-    echo ""
-fi
-
-echo -e "${GREEN}Setup complete! ${NC}"
-echo ""
-echo "Next steps:"
-echo "Import sample pdfs"
-echo ""
-echo "Run full test:"
-echo "   $ python test_rag_with_pdfs.py"
 
 # Ask if user wants to start docker compose now
 if command -v docker &> /dev/null; then
