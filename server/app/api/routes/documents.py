@@ -144,7 +144,7 @@ async def delete_document(
 ):
     doc = db.query(Document).filter(
         Document.id == doc_id, 
-        Document.user_id == current_user.email,
+        Document.user_id == current_user.id,
         Document.is_deleted == False
     ).first()
     if not doc:

@@ -41,7 +41,7 @@ async def generate(
     Runs the full RAG pipeline and returns an LLM-augmented answer.
     """
     try:
-        user_id = current_user.email
+        user_id = str(current_user.id)
         result = await run_rag_pipeline(
             prompt=request.prompt,
             user_id=user_id,

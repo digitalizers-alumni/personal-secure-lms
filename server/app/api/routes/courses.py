@@ -20,7 +20,7 @@ def create_course(
     current_user: User = Depends(get_current_user)
 ):
     db_course = Course(
-        user_id=current_user.email,
+        user_id=current_user.id,
         title=course_in.title,
         description=course_in.description,
         content_markdown=course_in.content_markdown,
@@ -41,7 +41,7 @@ def list_courses(
     current_user: User = Depends(get_current_user)
 ):
     return db.query(Course).filter(
-        Course.user_id == current_user.email,
+        Course.user_id == current_user.id,
         Course.is_deleted == False
     ).all()
 
@@ -53,7 +53,7 @@ def get_course(
 ):
     course = db.query(Course).filter(
         Course.id == course_id, 
-        Course.user_id == current_user.email,
+        Course.user_id == current_user.id,
         Course.is_deleted == False
     ).first()
     if not course:
@@ -70,7 +70,7 @@ def update_course(
 ):
     db_course = db.query(Course).filter(
         Course.id == course_id,
-        Course.user_id == current_user.email
+        Course.user_id == current_user.id
     ).first()
     if not db_course:
         raise HTTPException(status_code=404, detail="Course not found or access denied")
@@ -93,7 +93,7 @@ def update_course_status(
     # ex: PUBLISHED, ARCHIVED
     db_course = db.query(Course).filter(
         Course.id == course_id,
-        Course.user_id == current_user.email
+        Course.user_id == current_user.id
     ).first()
     if not db_course:
         raise HTTPException(status_code=404, detail="Course not found or access denied")
@@ -152,7 +152,7 @@ ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
     context = ""
     if request.selected_doc_ids:
         query = f"{request.topic} {request.learning_goal}"
-        chunks = search(query=query, top_k=8, user_id=current_user.email, doc_ids=request.selected_doc_ids)
+        chunks = search(query=query, top_k=8, user_id=str(current_user.id), doc_ids=request.selected_doc_ids)
         if chunks:
             context = "\n\n".join([f"Source {i+1}:\n{c['text']}" for i, c in enumerate(chunks)])
 
@@ -165,12 +165,12 @@ ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
         
         # Create and save Course entry
         db_course = Course(
-            user_id=current_user.email,
+            user_id=current_user.id,
             title=pkg.title,
             description=request.learning_goal,
             content_markdown=pkg.lesson_content,
             generated_by_llm=True,
-            list_src_docs_ids=request.doc_ids or [],
+            list_src_docs_ids=request.selected_doc_ids or [],
             quiz=[q.model_dump() for q in pkg.quiz],
             reward={
                 "reward_title": pkg.reward_title,
