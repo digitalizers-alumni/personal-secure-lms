@@ -35,7 +35,7 @@ def create_course(
     db.refresh(db_course)
     return db_course
 
-@router.get("/", response_model=List[CourseSchema])
+@router.get("", response_model=List[CourseSchema])
 def list_courses(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
