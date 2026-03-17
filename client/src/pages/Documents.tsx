@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { extraireTexte, ACCEPT_INPUT_FILE } from "@/lib/pii";
+import { extraireTexte, ACCEPT_INPUT_FILE, supprimerTableTokens } from "@/lib/pii";
 import { toast } from "@/hooks/use-toast";
 
 // --- Helpers ---
@@ -106,6 +106,7 @@ const Documents = () => {
     // Ajouter le document en statut "scanning"
     const newDoc: ScannedDocument = {
       id: docId,
+      documentId: crypto.randomUUID(),
       name: file.name,
       type: fileType.toUpperCase(),
       size: formatSize(file.size),
@@ -321,7 +322,12 @@ const Documents = () => {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => setDocuments((prev) => prev.filter((d) => d.id !== doc.id))}
+                              onClick={async () => {
+                                if (doc.documentId) {
+                                  await supprimerTableTokens(doc.documentId);
+                                }
+                                setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+                              }}
                               title="Supprimer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />

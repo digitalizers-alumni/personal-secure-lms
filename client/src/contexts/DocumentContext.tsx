@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useRef, type ReactNode } from "rea
 
 export interface ScannedDocument {
   id: number;
+  documentId?: string;  // UUID used as IndexedDB key for PII token table
   name: string;
   type: string;
   size: string;
