@@ -1,7 +1,7 @@
 import os
 from app.api.core.config import settings
-from celery import Celery # Added this import, assuming it was implicitly there or removed by mistake in the provided context.
-from celery.signals import worker_ready, worker_process_init # Added these imports, assuming they were implicitly there or removed by mistake in the provided context.
+from celery import Celery
+from celery.signals import worker_ready, worker_process_init
 
 IS_EAGER = os.getenv("CELERY_ALWAYS_EAGER", "False").lower() == "true"
 
