@@ -57,7 +57,10 @@ def get_course(
         Course.is_deleted == False
     ).first()
     if not course:
-        raise HTTPException(status_code=404, detail="Course not found or access denied")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail={"code": "COURSE_NOT_FOUND", "message": "Course not found or access denied"}
+        )
         
     return course
 

@@ -11,17 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { listCourses, deleteDocument } from "@/lib/api"; // Wait, need deleteCourse
+import { listCourses, deleteCourse, Course } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
-
-// I need to add deleteCourse to api.ts properly, although backend had it. 
-// Let me check api.ts again.
 
 const Courses = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCourses = async () => {
@@ -41,19 +38,11 @@ const Courses = () => {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure?")) return;
+    if (!confirm(t("confirm_delete") || "Are you sure?")) return;
     try {
-      // Assuming apiFetch handles the path
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/courses/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('lumina_token')}`
-        }
-      });
-      if (response.ok) {
-        toast.success("Course deleted");
-        fetchCourses();
-      }
+      await deleteCourse(id);
+      toast.success("Course deleted");
+      fetchCourses();
     } catch (error) {
       toast.error("Failed to delete course");
     }

@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CourseQuiz } from "@/components/CourseQuiz";
 import { CourseReward } from "@/components/CourseReward";
-import { getCourse } from "@/lib/api";
+import { getCourse, Course } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 
@@ -21,7 +21,7 @@ const CourseView = () => {
   const { id } = useParams<{ id: string }>();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [course, setCourse] = useState<any>(null);
+  const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<'lesson' | 'quiz' | 'finished'>('lesson');
   const [score, setScore] = useState<number>(0);
@@ -105,7 +105,7 @@ const CourseView = () => {
             <CardContent className="pt-8">
               <ScrollArea className="h-[600px] pr-4">
                 <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-black prose-p:text-lg prose-p:leading-relaxed">
-                  <ReactMarkdown>{course.lesson_content}</ReactMarkdown>
+                  <ReactMarkdown>{course.content_markdown}</ReactMarkdown>
                 </div>
               </ScrollArea>
               <div className="mt-8 pt-8 border-t flex justify-end">
