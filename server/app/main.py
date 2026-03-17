@@ -1,22 +1,23 @@
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 from app.api.routes.llm import router as llm_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.users import router as users_router
 from app.api.routes.courses import router as courses_router
 from app.api.routes.auth import router as auth_router
+from app.api.routes.generate import router as generate_router
 from app.db.database import init_db
 from app.api.core.config import settings
 from app.rag.embedder import embedder
-from app.api.routes.generate import router as generate_router
 from app.api.core.security import get_current_user
-from fastapi import Depends
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,14 +35,30 @@ async def lifespan(app: FastAPI):
     logger.info("Lumina Backend ready")
     yield
 
-
 app = FastAPI(
     title="Lumina Backend",
     description="RAG API — document ingestion and LLM-augmented query service",
     version="1.0.0",
     lifespan=lifespan,
-    redirect_slashes=False
+    redirect_slashes=True
 )
+
+def create_error_response(status_code: int, code: str, message: str):
+    return JSONResponse(
+        status_code=status_code,
+        content={"detail": {"code": code, "message": message}}
+    )
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if isinstance(exc.detail, dict) and "code" in exc.detail:
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return create_error_response(exc.status_code, "API_ERROR", str(exc.detail))
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global error: {exc}", exc_info=True)
+    return create_error_response(500, "INTERNAL_SERVER_ERROR", "An unexpected error occurred")
 
 # CORS configuration
 app.add_middleware(
@@ -52,10 +69,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Auth routes: /auth/login and /auth/register
+# Auth routes
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 
-# Protected routes (require JWT)
+# Protected routes
 app.include_router(
     documents_router, 
     prefix="/api/documents", 
@@ -63,7 +80,6 @@ app.include_router(
     dependencies=[Depends(get_current_user)]
 )
 
-# Unified Generation route (RAG): /api/generate
 app.include_router(
     generate_router, 
     prefix="/api", 
@@ -71,7 +87,6 @@ app.include_router(
     dependencies=[Depends(get_current_user)]
 )
 
-# Direct LLM route (Testing/Debug): /api/llm
 app.include_router(
     llm_router,
     prefix="/api/llm",

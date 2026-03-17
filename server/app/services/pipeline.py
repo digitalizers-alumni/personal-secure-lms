@@ -8,25 +8,34 @@ logger = logging.getLogger(__name__)
 
 KEYWORD_SYSTEM_PROMPT = "Tu es un extracteur de mots-clés. Analyse la question de l'utilisateur et retourne UNIQUEMENT une liste de mots-clés séparés par des virgules, sans aucune phrase d'introduction ni de conclusion."
 
-KEYWORD_EXTRACTION_PROMPT = """Extract the key search terms from this question.
-Question: {prompt}
-Keywords:"""
+KEYWORD_EXTRACTION_PROMPT = """Extrais les mots-clés de recherche de cette question.
+Question : {prompt}
+Mots-clés :"""
 
 
-AUGMENTED_SYSTEM_PROMPT = "Tu es Atlas, un assistant expert. Utilise le contexte fourni pour répondre de manière précise et détaillée à l'utilisateur. Si le contexte ne suffit pas, utilise tes connaissances générales."
+LANGUAGE_MAP = {
+    "fr": "en français",
+    "en": "in English",
+    "it": "in italiano",
+    "de": "auf Deutsch",
+    "rm": "en rumantsch"
+}
 
-AUGMENTED_PROMPT_TEMPLATE = """Context:
+AUGMENTED_SYSTEM_PROMPT = "Tu es Atlas, un assistant expert. Utilise le contexte fourni pour répondre de manière précise et détaillée à l'utilisateur. Si le contexte ne suffit pas, utilise tes connaissances générales. Tu DOIS impérativement répondre {lang_label}."
+
+AUGMENTED_PROMPT_TEMPLATE = """Contexte :
 {context}
 
-Question: {prompt}
+Question : {prompt}
 
-Answer:"""
+Réponse :"""
 
 
 async def run_rag_pipeline(
     prompt: str, 
     user_id: Optional[str] = None, 
-    selected_doc_ids: Optional[List[int]] = None
+    selected_doc_ids: Optional[List[int]] = None,
+    language: Optional[str] = "fr"
 ) -> dict:
     """
     Full RAG pipeline:
@@ -57,7 +66,7 @@ async def run_rag_pipeline(
         )
         logger.info("Augmenting prompt with %s chunks", len(chunks))
     else:
-        context = "No relevant context found in the knowledge base."
+        context = "Aucun contexte pertinent trouvé dans la base de connaissances."
         logger.info("No chunks retrieved, sending prompt without context")
 
     augmented_prompt = AUGMENTED_PROMPT_TEMPLATE.format(
@@ -66,9 +75,12 @@ async def run_rag_pipeline(
     )
 
     # Step 4 — final LLM call
+    lang_label = LANGUAGE_MAP.get(language, "en français")
+    system_prompt = AUGMENTED_SYSTEM_PROMPT.format(lang_label=lang_label)
+    
     answer = await llm_service.generate_response(
         user_prompt=augmented_prompt,
-        system_prompt=AUGMENTED_SYSTEM_PROMPT
+        system_prompt=system_prompt
     )
     logger.info("Pipeline complete")
 

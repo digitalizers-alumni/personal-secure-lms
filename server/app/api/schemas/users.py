@@ -13,7 +13,6 @@ class UserBase(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     job_function: Optional[str] = None
-    user_role: UserRole = UserRole.USER
 
 class UserCreate(UserBase):
     password: str

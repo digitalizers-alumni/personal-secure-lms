@@ -34,7 +34,7 @@ const typeIcons: Record<string, React.ElementType> = {
 };
 
 const AIPrompt = () => {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { documents } = useDocuments();
 
   // Documents sélectionnés (set d'IDs)
@@ -100,7 +100,11 @@ const AIPrompt = () => {
       .map((d) => d.backendDocId as number);
 
     try {
-      const result = await generateFromRAG(prompt.trim(), selectedBackendDocIds.length > 0 ? selectedBackendDocIds : undefined);
+      const result = await generateFromRAG(
+        prompt.trim(), 
+        selectedBackendDocIds.length > 0 ? selectedBackendDocIds : undefined,
+        locale
+      );
 
       let finalAnswer = result.answer;
 

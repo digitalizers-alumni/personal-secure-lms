@@ -38,7 +38,7 @@ interface CoursePackage {
 
 const CreateCourse: React.FC = () => {
   const { documents } = useDocuments();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [course, setCourse] = useState<CoursePackage | null>(null);
@@ -102,6 +102,7 @@ const CreateCourse: React.FC = () => {
         passing_score: 70,
         num_questions: numQuestions,
         selected_doc_ids: selectedBackendDocIds,
+        language: locale,
         additional_instructions: additionalInstructions || `Create a short course with 1 complete lesson in markdown. Generate exactly ${numQuestions} pedagogical questions. Each question must have exactly 4 options with only one correct answer. Return ONLY the JSON package.`
       });
 
