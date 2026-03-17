@@ -2,7 +2,7 @@ import os # Re-adding os import
 import logging
 from app.api.core.security import get_current_user
 from app.models.users import User
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Tuple
