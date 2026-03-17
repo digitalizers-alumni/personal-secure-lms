@@ -11,6 +11,35 @@ export interface User {
   is_deleted: boolean;
 }
 
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correct_answer: string;
+}
+
+export interface CoursePackage {
+  title: string;
+  lesson_content: string;
+  quiz: QuizQuestion[];
+  reward_title: string;
+  reward_message: string;
+}
+
+export interface Course {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  content_markdown: string;
+  generated_by_llm: boolean;
+  list_src_docs_ids: number[];
+  target_job_positions: string[];
+  quiz?: QuizQuestion[];
+  reward?: any;
+  created_at: string;
+  updated_at: string;
+}
+
 if (!API_URL) {
   console.warn("VITE_API_URL is not defined in environment variables.");
 }
@@ -63,12 +92,12 @@ export async function listDocuments(): Promise<Array<{ doc_id: number; filename:
   return response.json();
 }
 
-export async function listCourses(): Promise<any[]> {
+export async function listCourses(): Promise<Course[]> {
   const response = await apiFetch("/api/courses/");
   return response.json();
 }
 
-export async function getCourse(id: string): Promise<any> {
+export async function getCourse(id: string): Promise<Course> {
   const response = await apiFetch(`/api/courses/${id}`);
   return response.json();
 }
@@ -89,7 +118,7 @@ export async function generateFromRAG(prompt: string, documentIds: number[] = []
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ prompt, doc_ids: documentIds }),
+    body: JSON.stringify({ prompt, selected_doc_ids: documentIds }),
   });
 
   return response.json();
@@ -101,9 +130,9 @@ export async function generateCourse(data: {
   difficulty: string;
   passing_score: number;
   num_questions: number;
-  doc_ids: number[];
+  selected_doc_ids: number[];
   additional_instructions?: string;
-}): Promise<any> {
+}): Promise<Course> {
   const response = await apiFetch("/api/courses/generate", {
     method: "POST",
     headers: {

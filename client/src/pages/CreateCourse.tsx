@@ -101,7 +101,7 @@ const CreateCourse: React.FC = () => {
         difficulty,
         passing_score: 70,
         num_questions: numQuestions,
-        doc_ids: selectedBackendDocIds,
+        selected_doc_ids: selectedBackendDocIds,
         additional_instructions: additionalInstructions || `Create a short course with 1 complete lesson in markdown. Generate exactly ${numQuestions} pedagogical questions. Each question must have exactly 4 options with only one correct answer. Return ONLY the JSON package.`
       });
 
