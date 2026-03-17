@@ -4,12 +4,10 @@
 // Responsabilité : analyser un texte et retourner toutes les
 // entités PII détectées avec leur position dans le texte original.
 //
-// Trois stratégies combinées :
+// Deux stratégies combinées :
 //   1. Modèle NER (BERT multilingue) → noms, lieux, organisations (navigateur)
 //   2. Expressions régulières (regex) → emails, téléphones, IBAN, SIRET,
 //      numéros de sécu/AVS, CNI, URSSAF, IDE, adresses, IPs, URLs, etc.
-//   3. Presidio (optionnel) → spaCy français + reconnaisseurs FR/CH
-//      via serveur Python local (si disponible)
 //
 // Couvre les contextes français ET suisses romands :
 //   FR : NIR, SIRET/SIREN, URSSAF, mutuelle, CNI, EUR
@@ -18,15 +16,13 @@
 // Conçu pour les documents d'entreprise : contrats de travail, fiches de paie,
 // règlements intérieurs, NDA, dossiers RH, docs IT et conformité RGPD/LPD.
 //
-// Dépend de : @huggingface/transformers, decoupeur.ts, types.ts, presidio-client.ts
+// Dépend de : @huggingface/transformers, decoupeur.ts, types.ts
 // Passe ses résultats à : tokenizer.ts (Bloc 2)
 // ============================================================
 
 import { pipeline, env } from '@huggingface/transformers';
 import { découperTexte } from './decoupeur';
 import { EntitePII } from './types';
-import { détecterParPresidio, presidioEstDisponible } from './presidio-client';
-
 // ---------------------
 // Configuration du modèle
 // ---------------------
@@ -437,8 +433,7 @@ function attribuerIdentifiants(
  *   2. Lancer le modèle NER sur chaque morceau
  *   3. Recalculer les positions dans le texte original
  *   4. Détecter les emails/téléphones/numéros par regex
- *   5. Si disponible, appeler Presidio (spaCy FR + reconnaisseurs FR/CH)
- *   6. Fusionner, dédupliquer et attribuer des IDs
+ *   5. Fusionner, dédupliquer et attribuer des IDs
  *
  * Appelé par : tokenizer.ts (Bloc 2), qui utilisera les entités
  * pour censurer le document.
@@ -489,14 +484,8 @@ export async function détecterPII(
   // Détecter les emails, téléphones, numéros par regex sur le texte complet
   const entitésRegex = détecterParRegex(texte);
 
-  // Détecter via Presidio si le serveur est disponible (spaCy FR + reconnaisseurs FR/CH)
-  let entitésPresidio: Omit<EntitePII, 'id'>[] = [];
-  if (await presidioEstDisponible()) {
-    entitésPresidio = await détecterParPresidio(texte);
-  }
-
-  // Fusionner les trois sources, dédupliquer, puis attribuer les IDs
-  const toutesLesEntités = [...entitésBrutes, ...entitésRegex, ...entitésPresidio];
+  // Fusionner les deux sources, dédupliquer, puis attribuer les IDs
+  const toutesLesEntités = [...entitésBrutes, ...entitésRegex];
   const sansDoublons = dédupliquer(toutesLesEntités);
   const avecIdentifiants = attribuerIdentifiants(sansDoublons);
 

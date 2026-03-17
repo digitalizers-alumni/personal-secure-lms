@@ -23,12 +23,6 @@ export type { EntitePII, CarteTokensChiffree, EnregistrementTableTokens } from '
 // isModelLoaded()  → vérifie si le modèle NER est déjà chargé (utile pour l'UI)
 export { détecterPII, isModelLoaded } from './detecteur-pii';
 
-// --- Presidio (optionnel) ---
-// configurerPresidio()       → changer l'URL du serveur ou le seuil de confiance
-// presidioEstDisponible()    → vérifier si le serveur Presidio répond
-// détecterParPresidio()      → appeler Presidio directement (usage avancé)
-export { configurerPresidio, presidioEstDisponible, détecterParPresidio } from './presidio-client';
-
 // --- Bloc 2 : Tokenisation + Chiffrement ---
 // traiterDocument()   → censure le texte et chiffre le mapping (après détection)
 // restaurerRéponse()  → charge + déchiffre + restaure en un seul appel (à utiliser en priorité)

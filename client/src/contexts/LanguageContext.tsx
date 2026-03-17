@@ -12,8 +12,69 @@ export const SUPPORTED_LOCALES: { code: Locale; label: string }[] = [
 
 const translations: Record<Locale, Record<string, string>> = {
   fr: {
+    // Landing — Hero (revamped)
+    brand_tagline: "Privacy-First Learning Engine",
+    hero_headline: "Vos documents internes deviennent des formations. Sans exposer un seul nom.",
+    hero_sub: "LuminaSwiss transforme votre documentation d'entreprise en parcours de formation grâce à l'IA — les données personnelles sont supprimées avant tout traitement.",
+    hero_cta: "Explorer la plateforme",
+    hero_trust: "Hébergé en Suisse · Conforme nLPD · Zéro PII exposée à l'IA",
+    // Landing — Hero (legacy, kept for backward compat)
     hero_title: "Knowledge-to-Learning Engine",
     hero_subtitle: "Transformez votre documentation interne en formations intelligentes",
+    // Landing — Problem
+    problem_badge: "Le problème",
+    problem_title: "Vos connaissances internes sont piégées. Vos données fuient.",
+    problem_subtitle: "Les entreprises cumulent des milliers de documents que personne ne lit, pendant que les employés partagent des données sensibles avec des outils IA non sécurisés.",
+    problem_1: "des professionnels perdent 1 à 5 heures par jour à chercher de l'information dans des systèmes fragmentés.",
+    problem_2: "des employés ont déjà collé des données d'entreprise dans des outils IA — 82% sur des comptes personnels.",
+    problem_3: "d'amende personnelle en Suisse (nLPD) pour l'individu responsable d'une violation de données. Pas l'entreprise — vous.",
+    // Landing — Solution
+    solution_title: "De la documentation à la formation en 3 étapes",
+    solution_subtitle: "LuminaSwiss automatise ce qui prenait des semaines et coûtait des milliers de francs — en toute confidentialité.",
+    step_1_title: "Importez vos documents",
+    step_1_desc: "PDF, DOCX ou texte brut. Vos procédures internes, manuels RH, docs techniques — tout ce qui contient du savoir.",
+    step_2_title: "Le PII est supprimé automatiquement",
+    step_2_desc: "Notre pipeline NER + regex détecte noms, AVS, IBAN, emails et 24 formats suisses. L'IA ne voit jamais de données personnelles.",
+    step_3_title: "L'IA génère la formation",
+    step_3_desc: "Le moteur RAG produit des parcours structurés à partir du contenu anonymisé. Résultat : des formations sur mesure, en quelques minutes.",
+    // Landing — Swiss Privacy Shield
+    privacy_title: "Le bouclier de confidentialité suisse",
+    privacy_subtitle: "Trois couches de protection. Pas des cases à cocher — de l'architecture.",
+    privacy_law_label: "Couche 1 — Juridique",
+    privacy_law_title: "Protégé par le droit suisse",
+    privacy_law_desc: "La nLPD (en vigueur depuis sept. 2023) est l'une des lois les plus strictes au monde. Responsabilité pénale personnelle, pas seulement des amendes d'entreprise.",
+    privacy_hosting_label: "Couche 2 — Infrastructure",
+    privacy_hosting_title: "Hébergé en Suisse, point final",
+    privacy_hosting_desc: "Serveurs chez Infomaniak, Suisse. Pas de CLOUD Act américain, pas de transfert de données hors frontières, pas de zone grise juridique.",
+    privacy_pii_label: "Couche 3 — Architecture",
+    privacy_pii_title: "L'IA ne voit jamais vos données personnelles",
+    privacy_pii_desc: "Notre pipeline de détection PII (NER multilingue + 24 patterns regex FR/CH) supprime les données sensibles avant tout traitement IA.",
+    // Landing — Use Cases
+    usecases_title: "Des cas concrets, pas des promesses",
+    usecase_onboarding_title: "Onboarding des nouveaux employés",
+    usecase_onboarding_desc: "Transformez vos procédures internes en parcours d'intégration interactifs. Réduisez le temps de montée en compétence de semaines à jours.",
+    usecase_compliance_title: "Formation réglementaire",
+    usecase_compliance_desc: "Générez des modules de conformité à partir de vos documents juridiques et RH. Toujours à jour, toujours conforme.",
+    usecase_knowledge_title: "Rétention des connaissances",
+    usecase_knowledge_desc: "Le savoir ne part plus avec les collaborateurs. Capturez l'expertise métier avant qu'elle ne disparaisse.",
+    // Landing — Architecture (revamped values)
+    arch_title: "Architecture technique",
+    arch_client: "Client (navigateur)",
+    arch_client_desc: "Détection PII côté client via NER (Hugging Face BERT multilingue) + 24 patterns regex FR/CH. Chiffrement local, stockage IndexedDB. L'IA n'accède qu'au texte anonymisé.",
+    arch_server: "Serveur (Suisse)",
+    arch_server_desc: "API FastAPI, moteur RAG avec pgvector. Hébergé chez Infomaniak, Genève.",
+    // Landing — Final CTA
+    cta_title: "Prêt à transformer vos documents en formations ?",
+    cta_subtitle: "Explorez la plateforme et voyez comment l'IA peut former vos équipes — sans jamais compromettre leur vie privée.",
+    // Landing — Footer
+    footer: "Conçu en Suisse",
+    footer_sub: "nLPD · RGPD · FR · IT · DE · EN · RM",
+    // Landing — Features (legacy)
+    feat_ai: "Génération IA",
+    feat_rag: "Moteur RAG",
+    feat_tenant: "Multi-tenant",
+    feat_swiss: "Hébergement Suisse",
+    // Login & Roles
     select_role: "Choisissez votre profil",
     rbac: "RBAC – Contrôle d'accès basé sur les rôles",
     admin_title: "Administrateur",
@@ -27,16 +88,6 @@ const translations: Record<Locale, Record<string, string>> = {
     invite_email_placeholder: "email@exemple.com",
     invite_send: "Envoyer l'invitation",
     enter: "Accéder",
-    feat_ai: "Génération IA",
-    feat_rag: "Moteur RAG",
-    feat_tenant: "Multi-tenant",
-    feat_swiss: "Hébergement Suisse",
-    arch_title: "Architecture Client / Serveur",
-    arch_client: "Client (Frontend)",
-    arch_client_desc: "React + Vite exécuté dans le navigateur de l'utilisateur. Interface d'interaction avec l'IA.",
-    arch_server: "Serveur (Backend)",
-    arch_server_desc: "Hébergé chez Infomaniak (Suisse), Ubuntu Server, API sécurisée, moteur RAG.",
-    footer: "Conçu en Suisse",
     login_title: "Connexion",
     login_email: "Adresse e-mail",
     login_password: "Mot de passe",
@@ -164,7 +215,7 @@ const translations: Record<Locale, Record<string, string>> = {
     ai_sent_title: "Prompt envoyé",
     ai_sent_desc: "Votre demande a été transmise avec les documents sélectionnés",
     score: "Score",
-    // New keys
+    // PII entity labels
     person: "Personne",
     organization: "Organisation",
     location: "Lieu",
@@ -187,12 +238,14 @@ const translations: Record<Locale, Record<string, string>> = {
     zip_code: "Code postal",
     ide: "IDE",
     birth_date: "Date naissance",
+    // Common UI
     cancel: "Annuler",
     confirm: "Confirmer",
     close: "Fermer",
     preview: "Prévisualiser",
     delete: "Supprimer",
     loading: "Chargement...",
+    // Document scanning & RAG
     docs_extracting: "Extraction du texte en cours...",
     docs_analyzed: "Documents analysés",
     docs_status_pii: "Statut PII",
@@ -216,6 +269,7 @@ const translations: Record<Locale, Record<string, string>> = {
     docs_preview_pii_replaced: "donnée(s) sensible(s) remplacée(s) par des tokens",
     docs_preview_no_pii: "Aucune donnée sensible détectée",
     docs_export_tokenized: "Exporter tokenise",
+    // PII Analysis modal
     pii_analysis_title: "Analyse PII",
     pii_analysis_desc: "Analyse de « {name} » avant envoi",
     pii_verification_desc: "Vérification des données sensibles avant traitement",
@@ -226,10 +280,12 @@ const translations: Record<Locale, Record<string, string>> = {
     pii_view_originals: "Voir les originaux",
     pii_send_anonymized: "Envoyer anonymisé",
     pii_send_anyway: "Envoyer",
+    // AI Generation
     ai_generation_error: "Erreur de génération",
     ai_generation_fail_desc: "Impossible de générer une réponse.",
     ai_answer_title: "Réponse",
     ai_sources_used: "Sources utilisées",
+    // Dashboard extras
     dash_current_role: "Rôle actuel",
     dash_admin_role: "Administrateur",
     dash_user_role: "Utilisateur",
@@ -284,6 +340,7 @@ const translations: Record<Locale, Record<string, string>> = {
     courses_delete: "Supprimer",
   },
   it: {
+    // Landing — Hero (revamped keys not yet translated for IT, keep legacy)
     hero_title: "Knowledge-to-Learning Engine",
     hero_subtitle: "Trasforma la documentazione interna in formazioni intelligenti",
     select_role: "Scegli il tuo profilo",
@@ -429,7 +486,7 @@ const translations: Record<Locale, Record<string, string>> = {
     ai_sent_title: "Prompt inviato",
     ai_sent_desc: "La tua richiesta è stata trasmessa con i documenti selezionati",
     score: "Punteggio",
-    // New keys
+    // PII entity labels
     person: "Persona",
     organization: "Organizzazione",
     location: "Luogo",
@@ -452,12 +509,14 @@ const translations: Record<Locale, Record<string, string>> = {
     zip_code: "Codice postale",
     ide: "IDE",
     birth_date: "Data di nascita",
+    // Common UI
     cancel: "Annulla",
     confirm: "Conferma",
     close: "Chiudi",
     preview: "Anteprima",
     delete: "Elimina",
     loading: "Caricamento...",
+    // Document scanning & RAG
     docs_extracting: "Estrazione del testo in corso...",
     docs_analyzed: "Documenti analizzati",
     docs_status_pii: "Stato PII",
@@ -481,6 +540,7 @@ const translations: Record<Locale, Record<string, string>> = {
     docs_preview_pii_replaced: "dati sensibili sostituiti da token",
     docs_preview_no_pii: "Nessun dato sensibile rilevato",
     docs_export_tokenized: "Esporta tokenizzato",
+    // PII Analysis modal
     pii_analysis_title: "Analisi PII",
     pii_analysis_desc: "Analisi di « {name} » prima dell'invio",
     pii_verification_desc: "Verifica dei dati sensibili prima dell'elaborazione",
@@ -491,10 +551,12 @@ const translations: Record<Locale, Record<string, string>> = {
     pii_view_originals: "Visualizza originali",
     pii_send_anonymized: "Invia anonimizzato",
     pii_send_anyway: "Invia comunque",
+    // AI Generation
     ai_generation_error: "Errore di generazione",
     ai_generation_fail_desc: "Impossibile generare una risposta.",
     ai_answer_title: "Risposta",
     ai_sources_used: "Fonti utilizzate",
+    // Dashboard extras
     dash_current_role: "Ruolo attuale",
     dash_admin_role: "Amministratore",
     dash_user_role: "Utente",
@@ -694,7 +756,7 @@ const translations: Record<Locale, Record<string, string>> = {
     ai_sent_title: "Prompt gesendet",
     ai_sent_desc: "Ihre Anfrage wurde mit den ausgewählten Dokumenten übermittelt",
     score: "Punktzahl",
-    // New keys
+    // PII entity labels
     person: "Person",
     organization: "Organisation",
     location: "Ort",
@@ -717,12 +779,14 @@ const translations: Record<Locale, Record<string, string>> = {
     zip_code: "Postleitzahl",
     ide: "IDE",
     birth_date: "Geburtsdatum",
+    // Common UI
     cancel: "Abbrechen",
     confirm: "Bestätigen",
     close: "Schließen",
     preview: "Vorschau",
     delete: "Löschen",
     loading: "Laden...",
+    // Document scanning & RAG
     docs_extracting: "Extrahiere Text...",
     docs_analyzed: "Analysierte Dokumente",
     docs_status_pii: "PII-Status",
@@ -746,6 +810,7 @@ const translations: Record<Locale, Record<string, string>> = {
     docs_preview_pii_replaced: "sensible Daten durch Token ersetzt",
     docs_preview_no_pii: "Keine sensiblen Daten erkannt",
     docs_export_tokenized: "Tokenisiert exportieren",
+    // PII Analysis modal
     pii_analysis_title: "PII-Analyse",
     pii_analysis_desc: "Analysiere '{name}' vor dem Senden",
     pii_verification_desc: "Überprüfung sensibler Daten vor der Verarbeitung",
@@ -756,10 +821,12 @@ const translations: Record<Locale, Record<string, string>> = {
     pii_view_originals: "Originale anzeigen",
     pii_send_anonymized: "Anonymisiert senden",
     pii_send_anyway: "Trotzdem senden",
+    // AI Generation
     ai_generation_error: "Generierungsfehler",
     ai_generation_fail_desc: "Eine Antwort konnte nicht generiert werden.",
     ai_answer_title: "Antwort",
     ai_sources_used: "Verwendete Quellen",
+    // Dashboard extras
     dash_current_role: "Aktuelle Rolle",
     dash_admin_role: "Administrator",
     dash_user_role: "Benutzer",
@@ -802,6 +869,8 @@ const translations: Record<Locale, Record<string, string>> = {
     course_gen_finish_quiz: "Quiz beenden",
     course_gen_next_question: "Nächste Frage",
     course_gen_prev_question: "Vorherige Frage",
+    course_gen_additional_instructions_label: "Zusätzliche Anweisungen (optional)",
+    course_gen_additional_instructions_placeholder: "z.B. Fokus auf die Praxis, konkrete Beispiele einbeziehen...",
     course_gen_score_threshold: "Die Bestehensgrenze liegt bei 70%.",
     course_gen_num_questions: "Anzahl der Fragen",
     course_gen_reward_btn: "Belohnung ansehen",
@@ -810,12 +879,71 @@ const translations: Record<Locale, Record<string, string>> = {
     courses_empty: "Noch keine Kurse generiert",
     courses_view: "Lektion ansehen",
     courses_delete: "Löschen",
-    course_gen_additional_instructions_label: "Zusätzliche Anweisungen (optional)",
-    course_gen_additional_instructions_placeholder: "z.B. Fokus auf die Praxis, konkrete Beispiele einbeziehen...",
   },
   en: {
+    // Landing — Hero (revamped)
+    brand_tagline: "Privacy-First Learning Engine",
+    hero_headline: "Your internal docs become training courses. Without exposing a single name.",
+    hero_sub: "LuminaSwiss turns your company documentation into AI-powered training paths — personal data is stripped before any processing happens.",
+    hero_cta: "Explore the platform",
+    hero_trust: "Swiss-hosted · nFADP compliant · Zero PII exposure to AI",
+    // Landing — Hero (legacy, kept for backward compat)
     hero_title: "Knowledge-to-Learning Engine",
     hero_subtitle: "Transform your internal documentation into intelligent training",
+    // Landing — Problem
+    problem_badge: "The problem",
+    problem_title: "Your knowledge is trapped. Your data is leaking.",
+    problem_subtitle: "Companies accumulate thousands of documents nobody reads, while employees paste sensitive data into unsecured AI tools.",
+    problem_1: "of professionals lose 1 to 5 hours per day searching for information across fragmented systems.",
+    problem_2: "of employees have pasted company data into AI tools — 82% using personal accounts.",
+    problem_3: "personal fine in Switzerland (nFADP) for the individual responsible for a data breach. Not the company — you.",
+    // Landing — Solution
+    solution_title: "From documentation to training in 3 steps",
+    solution_subtitle: "LuminaSwiss automates what used to take weeks and cost thousands of francs — in full confidentiality.",
+    step_1_title: "Upload your documents",
+    step_1_desc: "PDF, DOCX, or plain text. Your internal procedures, HR manuals, technical docs — anything that holds knowledge.",
+    step_2_title: "PII is stripped automatically",
+    step_2_desc: "Our NER + regex pipeline detects names, social security numbers, IBANs, emails, and 24 Swiss formats. The AI never sees personal data.",
+    step_3_title: "AI generates the training",
+    step_3_desc: "The RAG engine produces structured learning paths from anonymized content. Result: tailored training courses in minutes.",
+    // Landing — Swiss Privacy Shield
+    privacy_title: "The Swiss privacy shield",
+    privacy_subtitle: "Three layers of protection. Not checkboxes — architecture.",
+    privacy_law_label: "Layer 1 — Legal",
+    privacy_law_title: "Protected by Swiss law",
+    privacy_law_desc: "The nFADP (in force since Sept. 2023) is one of the strictest privacy laws in the world. Personal criminal liability, not just corporate fines.",
+    privacy_hosting_label: "Layer 2 — Infrastructure",
+    privacy_hosting_title: "Hosted in Switzerland. Period.",
+    privacy_hosting_desc: "Servers at Infomaniak, Switzerland. No US CLOUD Act, no cross-border data transfers, no legal gray zones.",
+    privacy_pii_label: "Layer 3 — Architecture",
+    privacy_pii_title: "The AI never sees your personal data",
+    privacy_pii_desc: "Our PII detection pipeline (multilingual NER + 24 FR/CH regex patterns) strips sensitive data before any AI processing.",
+    // Landing — Use Cases
+    usecases_title: "Real use cases, not promises",
+    usecase_onboarding_title: "New employee onboarding",
+    usecase_onboarding_desc: "Turn your internal procedures into interactive onboarding paths. Cut ramp-up time from weeks to days.",
+    usecase_compliance_title: "Regulatory training",
+    usecase_compliance_desc: "Generate compliance modules from your legal and HR documents. Always up to date, always compliant.",
+    usecase_knowledge_title: "Knowledge retention",
+    usecase_knowledge_desc: "Knowledge no longer walks out the door. Capture domain expertise before it disappears.",
+    // Landing — Architecture (revamped values)
+    arch_title: "Technical architecture",
+    arch_client: "Client (browser)",
+    arch_client_desc: "Client-side PII detection via NER (Hugging Face multilingual BERT) + 24 FR/CH regex patterns. Local encryption, IndexedDB storage. The AI only accesses anonymized text.",
+    arch_server: "Server (Switzerland)",
+    arch_server_desc: "FastAPI backend, RAG engine with pgvector. Hosted at Infomaniak, Geneva.",
+    // Landing — Final CTA
+    cta_title: "Ready to turn your documents into training?",
+    cta_subtitle: "Explore the platform and see how AI can train your teams — without ever compromising their privacy.",
+    // Landing — Footer
+    footer: "Made in Switzerland",
+    footer_sub: "nFADP · GDPR · FR · IT · DE · EN · RM",
+    // Landing — Features (legacy)
+    feat_ai: "AI Generation",
+    feat_rag: "RAG Engine",
+    feat_tenant: "Multi-tenant",
+    feat_swiss: "Swiss Hosting",
+    // Login & Roles
     select_role: "Choose your profile",
     rbac: "RBAC – Role-Based Access Control",
     admin_title: "Administrator",
@@ -829,16 +957,6 @@ const translations: Record<Locale, Record<string, string>> = {
     invite_email_placeholder: "email@example.com",
     invite_send: "Send invitation",
     enter: "Enter",
-    feat_ai: "AI Generation",
-    feat_rag: "RAG Engine",
-    feat_tenant: "Multi-tenant",
-    feat_swiss: "Swiss Hosting",
-    arch_title: "Client / Server Architecture",
-    arch_client: "Client (Frontend)",
-    arch_client_desc: "React + Vite running in the user's browser. AI interaction interface.",
-    arch_server: "Server (Backend)",
-    arch_server_desc: "Hosted by Infomaniak (Switzerland), Ubuntu Server, secure API, RAG engine.",
-    footer: "Made in Switzerland",
     login_title: "Login",
     login_email: "Email address",
     login_password: "Password",
@@ -959,7 +1077,7 @@ const translations: Record<Locale, Record<string, string>> = {
     ai_sent_title: "Prompt sent",
     ai_sent_desc: "Your request has been sent with the selected documents",
     score: "Score",
-    // New keys
+    // PII entity labels
     person: "Person",
     organization: "Organization",
     location: "Location",
@@ -982,12 +1100,14 @@ const translations: Record<Locale, Record<string, string>> = {
     zip_code: "Zip code",
     ide: "IDE",
     birth_date: "Birth date",
+    // Common UI
     cancel: "Cancel",
     confirm: "Confirm",
     close: "Close",
     preview: "Preview",
     delete: "Delete",
     loading: "Loading...",
+    // Document scanning & RAG
     docs_extracting: "Extracting text...",
     docs_analyzed: "Analyzed documents",
     docs_status_pii: "PII Status",
@@ -1011,6 +1131,7 @@ const translations: Record<Locale, Record<string, string>> = {
     docs_preview_pii_replaced: "sensitive data replaced by tokens",
     docs_preview_no_pii: "No sensitive data detected",
     docs_export_tokenized: "Export tokenized",
+    // PII Analysis modal
     pii_analysis_title: "PII Analysis",
     pii_analysis_desc: "Analyzing '{name}' before sending",
     pii_verification_desc: "Verifying sensitive data before processing",
@@ -1021,10 +1142,12 @@ const translations: Record<Locale, Record<string, string>> = {
     pii_view_originals: "View originals",
     pii_send_anonymized: "Send anonymized",
     pii_send_anyway: "Send anyway",
+    // AI Generation
     ai_generation_error: "Generation error",
     ai_generation_fail_desc: "Unable to generate a response.",
     ai_answer_title: "Answer",
     ai_sources_used: "Sources used",
+    // Dashboard extras
     dash_current_role: "Current role",
     dash_admin_role: "Administrator",
     dash_user_role: "User",
@@ -1224,7 +1347,7 @@ const translations: Record<Locale, Record<string, string>> = {
     ai_sent_title: "Prompt tramess",
     ai_sent_desc: "Vossa dumonda è vegnida transmessa cun ils documents tschernids",
     score: "Punctaziun",
-    // New keys
+    // PII entity labels
     person: "Persuna",
     organization: "Organisaziun",
     location: "Lieu",
@@ -1247,12 +1370,14 @@ const translations: Record<Locale, Record<string, string>> = {
     zip_code: "Numer postal",
     ide: "IDE",
     birth_date: "Data da naschientscha",
+    // Common UI
     cancel: "Annullar",
     confirm: "Confermar",
     close: "Serrar",
     preview: "Previsualisar",
     delete: "Stizzar",
     loading: "Chargiar...",
+    // Document scanning & RAG
     docs_extracting: "Extracziun dal text en curs...",
     docs_analyzed: "Documents analisads",
     docs_status_pii: "Status PII",
@@ -1276,6 +1401,7 @@ const translations: Record<Locale, Record<string, string>> = {
     docs_preview_pii_replaced: "datas sensiblas remplazzadas cun tokens",
     docs_preview_no_pii: "Naginas datas sensiblas chattadas",
     docs_export_tokenized: "Exportar tokenisà",
+    // PII Analysis modal
     pii_analysis_title: "Analisa PII",
     pii_analysis_desc: "Analisa da « {name} » avant il trametter",
     pii_verification_desc: "Verificaziun da las datas sensiblas avant il tractament",
@@ -1286,10 +1412,12 @@ const translations: Record<Locale, Record<string, string>> = {
     pii_view_originals: "Mussar ils originals",
     pii_send_anonymized: "Trametter anonimisà",
     pii_send_anyway: "Trametter tuttina",
+    // AI Generation
     ai_generation_error: "Errur da generaziun",
     ai_generation_fail_desc: "Impossibel da generar ina resposta.",
     ai_answer_title: "Resposta",
     ai_sources_used: "Funtaunas utilisadas",
+    // Dashboard extras
     dash_current_role: "Rol actual",
     dash_admin_role: "Administratur",
     dash_user_role: "Utilisader",
