@@ -15,8 +15,6 @@ def _set_status(doc_id: int, status: str):
             doc.status = status
             db.commit()
             logger.info("Document doc_id=%s status updated to '%s'", doc_id, status)
-        else:
-            logger.warning("Document doc_id=%s not found in DB", doc_id)
     except Exception as e:
         logger.error("Failed to update status for doc_id=%s: %s", doc_id, str(e))
         db.rollback()
