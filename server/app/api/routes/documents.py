@@ -139,26 +139,46 @@ async def get_document_status(
 @router.delete("/{doc_id}", status_code=204)
 async def delete_document(
     doc_id: int, 
+    hard: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """
+    Delete a document.
+    - Default (hard=False): Soft-delete (marks as is_deleted=True).
+    - Hard delete (hard=True): Removes the physical file from disk and deletes the database record.
+    """
     doc = db.query(Document).filter(
         Document.id == doc_id, 
-        Document.user_id == current_user.email,
+        Document.user_id == str(current_user.id),
         Document.is_deleted == False
     ).first()
+    
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found or access denied")
     
-    # Soft delete in Database
-    doc.is_deleted = True
+    if hard:
+        # 1. Physical removal from disk
+        file_path = doc.file_path
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                logger.info(f"Physical file removed: {file_path}")
+            except Exception as e:
+                logger.error(f"Failed to remove physical file {file_path}: {e}")
+        
+        # 2. Hard delete in Database
+        db.delete(doc)
+    else:
+        # Soft delete in Database
+        doc.is_deleted = True
+    
     db.commit()
     
-    # Remove from RAG Vectors
+    # Remove from RAG Vectors (always attempt cleanup)
     try:
         delete_rag_document(doc_id)
     except Exception as e:
         logger.error(f"Failed to delete vectors for doc_id {doc_id}: {e}")
-        # We don't raise as the DB delete was successful
         
     return None
