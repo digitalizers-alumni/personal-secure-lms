@@ -21,6 +21,8 @@ class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     job_function: Optional[str] = None
+
+class UserAdminUpdate(UserUpdate):
     user_role: Optional[UserRole] = None
     is_active: Optional[bool] = None
 
