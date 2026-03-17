@@ -210,14 +210,14 @@ else:
 conn.close()
 PYTHON_SCRIPT
 
-echo -e "${GREEN}Database ready Default lumina account is :${NC}"
+echo -e "${GREEN}Database ready default lumina account is :${NC}"
 echo "Admin user : admin@lumina-swiss.ch"
 echo "Password   : admin1234"
 echo ""
 
 # Start docker compose
 if command -v docker &> /dev/null; then
-    echo -n "Would you like to start API + Qdrant + Redis with docker compose now? (y/n): "
+    echo -n "Would you like to start the backend with docker compose ${RED}This will take several minutes${NC} (y/n): "
     read -r START_DOCKER_COMPOSE
 
     if [[ "$START_DOCKER_COMPOSE" == "yes" || "$START_DOCKER_COMPOSE" == "y" || "$START_DOCKER_COMPOSE" == "Y" || "$START_DOCKER_COMPOSE" == "YES" ]]; then
@@ -264,8 +264,3 @@ else
 fi
 
 echo -e "${GREEN}Setup complete!${NC}"
-echo ""
-echo "Next steps:"
-echo "  1. Create an admin account: POST http://localhost:8000/auth/register"
-echo "  2. Access the API docs at:  http://localhost:8000/docs"
-echo ""
