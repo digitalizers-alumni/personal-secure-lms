@@ -125,7 +125,7 @@ async def upload_document(
     ingest_document.delay(doc.id, doc.file_path, doc.user_id)
     return DocumentUploadResponse(doc_id=doc.id, filename=doc.filename, status=doc.status)
 
-@router.get("/", response_model=List[DocumentStatusResponse])
+@router.get("", response_model=List[DocumentStatusResponse])
 async def list_documents(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
