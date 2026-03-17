@@ -33,16 +33,18 @@ class LLMService:
             "max_tokens": 1000 # Increased for general responses
         }
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             try:
+                logger.info(f"Sending request to Infomaniak LLM: {self.base_url}")
                 response = await client.post(self.base_url, headers=self.headers, json=data)
+                logger.info(f"Infomaniak status code: {response.status_code}")
                 response.raise_for_status()
                 
                 result = response.json()
-                logger.info(f"LLM response received (generate_response): {result}") # Added logging
                 return result['choices'][0]['message']['content'].strip()
                 
             except httpx.HTTPStatusError as e:
+                logger.error(f"LLM API Error: {e.response.status_code} - {e.response.text}")
                 raise HTTPException(
                     status_code=502,
                     detail=f"LLM API error ({e.response.status_code}): {e.response.text}"

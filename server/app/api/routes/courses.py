@@ -13,7 +13,7 @@ import json
 
 router = APIRouter()
 
-@router.post("/", response_model=CourseSchema, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=CourseSchema, status_code=status.HTTP_201_CREATED)
 def create_course(
     course_in: CourseCreate, 
     db: Session = Depends(get_db),
