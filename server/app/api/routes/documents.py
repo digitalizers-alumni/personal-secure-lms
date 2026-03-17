@@ -11,6 +11,7 @@ from app.models.documents import Document
 from app.api.schemas.documents import DocumentUploadResponse, DocumentStatusResponse
 from app.worker.tasks import ingest_document
 from app.rag.indexer import delete_document as delete_rag_document
+import re
 import uuid
 import hashlib
 
@@ -19,6 +20,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 STORAGE_DIR = os.getenv("STORAGE_DIR", "./data/documents")
+
+def _sanitize_filename(filename: str) -> str:
+    """
+    Extracts the basename and replaces unsafe characters with underscores.
+    """
+    # 1. Take only the base name (prevents path traversal like ../../etc/passwd)
+    base_name = os.path.basename(filename)
+    # 2. Keep only letters, numbers, dots, and hyphens (replaces everything else with _)
+    clean_name = re.sub(r'[^a-zA-Z0-9.\-]', '_', base_name)
+    # 3. Collapse multiple underscores into one
+    clean_name = re.sub(r'_+', '_', clean_name)
+    return clean_name
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
 ALLOWED_MIME_TYPES = {
     "application/pdf",
@@ -30,8 +43,9 @@ MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
 def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
     os.makedirs(STORAGE_DIR, exist_ok=True)
     
-    # 1. Check extension
-    extension = os.path.splitext(file.filename)[1].lower()
+    # Sanitize the filename early
+    safe_filename = _sanitize_filename(file.filename)
+    extension = os.path.splitext(safe_filename)[1].lower()
     
     if extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=415, detail=f"Unsupported file type: {extension}")
@@ -59,7 +73,7 @@ def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
     file.file.seek(0)
     hash_sha256_obj = hashlib.sha256()
 
-    unique_filename = f"{uuid.uuid4()}_{file.filename}"
+    unique_filename = f"{uuid.uuid4()}_{safe_filename}"
     file_path = os.path.join(STORAGE_DIR, unique_filename)
     
     total_size = 0
@@ -139,26 +153,46 @@ async def get_document_status(
 @router.delete("/{doc_id}", status_code=204)
 async def delete_document(
     doc_id: int, 
+    hard: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """
+    Delete a document.
+    - Default (hard=False): Soft-delete (marks as is_deleted=True).
+    - Hard delete (hard=True): Removes the physical file from disk and deletes the database record.
+    """
     doc = db.query(Document).filter(
         Document.id == doc_id, 
-        Document.user_id == current_user.email,
+        Document.user_id == str(current_user.id),
         Document.is_deleted == False
     ).first()
+    
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found or access denied")
     
-    # Soft delete in Database
-    doc.is_deleted = True
+    if hard:
+        # 1. Physical removal from disk
+        file_path = doc.file_path
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                logger.info(f"Physical file removed: {file_path}")
+            except Exception as e:
+                logger.error(f"Failed to remove physical file {file_path}: {e}")
+        
+        # 2. Hard delete in Database
+        db.delete(doc)
+    else:
+        # Soft delete in Database
+        doc.is_deleted = True
+    
     db.commit()
     
-    # Remove from RAG Vectors
+    # Remove from RAG Vectors (always attempt cleanup)
     try:
         delete_rag_document(doc_id)
     except Exception as e:
         logger.error(f"Failed to delete vectors for doc_id {doc_id}: {e}")
-        # We don't raise as the DB delete was successful
         
     return None

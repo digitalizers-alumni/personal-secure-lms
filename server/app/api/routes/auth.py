@@ -23,6 +23,11 @@ def perform_login(email: str, password: str, db: Session) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Update last activity on successful login
+    user.last_activity = datetime.datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+
     access_token = create_access_token(user_id=user.id, role=user.user_role.value)
 
     return {
