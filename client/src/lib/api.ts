@@ -1,7 +1,7 @@
 export const API_URL = import.meta.env.VITE_API_URL || "";
 
 export interface User {
-  id: number;
+  id: string;
   email: string;
   first_name: string;
   last_name: string;
@@ -17,10 +17,7 @@ export interface QuizQuestion {
   correct_answer: string;
 }
 
-export interface CoursePackage {
-  title: string;
-  lesson_content: string;
-  quiz: QuizQuestion[];
+export interface CourseReward {
   reward_title: string;
   reward_message: string;
 }
@@ -35,7 +32,10 @@ export interface Course {
   list_src_docs_ids: number[];
   target_job_positions: string[];
   quiz?: QuizQuestion[];
-  reward?: any;
+  reward?: CourseReward;
+  reward_title?: string;
+  reward_message?: string;
+  status: string;
   created_at: string;
   updated_at: string;
 }
@@ -104,6 +104,12 @@ export async function getCourse(id: string): Promise<Course> {
 
 export async function deleteDocument(docId: number): Promise<void> {
   await apiFetch(`/api/documents/${docId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function deleteCourse(id: string): Promise<void> {
+  await apiFetch(`/api/courses/${id}`, {
     method: "DELETE",
   });
 }
