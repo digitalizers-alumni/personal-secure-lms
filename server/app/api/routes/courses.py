@@ -163,33 +163,27 @@ ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
 
     try:
         course_data = await llm_service.generate_json_response(user_prompt, system_prompt)
-        # Parse it to ensure it matches CoursePackage structure if needed, or just use dict
-        pkg = CoursePackage(**course_data)
+        logger.info("Parsed course_data keys: %s", list(course_data.keys()))
+        try:
+            pkg = CoursePackage(**course_data)
+        except Exception as e:
+            logger.error("CoursePackage validation error: %s", str(e))
+            raise HTTPException(status_code=500, detail=f"Course structure error: {str(e)}")
         
         # Create and save Course entry
         db_course = Course(
-            user_id=current_user.id,
-            title=pkg.title,
-            description=request.learning_goal,
-            content_markdown=pkg.lesson_content,
-            generated_by_llm=True,
-            list_src_docs_ids=request.selected_doc_ids or [],
-            quiz=[q.model_dump() for q in pkg.quiz],
-            reward={
-                "reward_title": pkg.reward_title,
-                "reward_message": pkg.reward_message
-            },
-            status="PUBLISHED" # Automatiquement publié pour ce prototype
+            ...
         )
         db.add(db_course)
         db.commit()
         db.refresh(db_course)
         
         return db_course
-    except HTTPException: # Catch only HTTPExceptions raised by llm_service
-        raise # Re-raise if it's an HTTPException
-    except Exception as e: # Catch other exceptions
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_course(
     course_id: str, 
