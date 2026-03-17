@@ -7,10 +7,13 @@ import {
   LayoutDashboard,
   FileText,
   Sparkles,
+  GraduationCap,
   ChevronLeft,
   ChevronRight,
   Shield,
   LogOut,
+  Users as UsersIcon,
+  UserCircle,
 } from "lucide-react";
 
 interface NavItem {
@@ -20,9 +23,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { labelKey: "nav_dashboard", icon: LayoutDashboard, path: "/dashboard" },
-  { labelKey: "nav_documents", icon: FileText, path: "/documents" },
-  { labelKey: "nav_ai_prompt", icon: Sparkles, path: "/ai-prompt" },
+  { labelKey: "nav_dashboard",    icon: LayoutDashboard, path: "/dashboard"     },
+  { labelKey: "nav_documents",    icon: FileText,        path: "/documents"     },
+  { labelKey: "nav_ai_prompt",    icon: Sparkles,        path: "/ai-prompt"     },
+  { labelKey: "nav_formations",   icon: FileText,        path: "/courses"       },
+  { labelKey: "nav_create_course",icon: GraduationCap,   path: "/create-course" },
 ];
 
 const AppSidebar = () => {
@@ -36,6 +41,13 @@ const AppSidebar = () => {
     logout();
     navigate("/");
   };
+
+  const navLinkClass = (path: string) =>
+    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
+      location.pathname === path
+        ? "bg-sidebar-accent text-sidebar-primary"
+        : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+    }`;
 
   return (
     <motion.aside
@@ -73,15 +85,7 @@ const AppSidebar = () => {
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-              }`}
-            >
+            <Link key={item.path} to={item.path} className={navLinkClass(item.path)}>
               {isActive && (
                 <motion.div
                   layoutId="activeIndicator"
@@ -105,9 +109,40 @@ const AppSidebar = () => {
             </Link>
           );
         })}
+
+        {/* Admin section */}
+        {role === "admin" && (
+          <>
+            <div className="px-3 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Admin
+            </div>
+            <Link to="/users" className={navLinkClass("/users")}>
+              {location.pathname === "/users" && (
+                <motion.div
+                  layoutId="activeIndicatorAdmin"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-sidebar-primary active-glow"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+              <UsersIcon className={`w-5 h-5 flex-shrink-0 ${location.pathname === "/users" ? "text-sidebar-primary" : ""}`} />
+              <AnimatePresence>
+                {!collapsed && (
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: "auto" }}
+                    exit={{ opacity: 0, width: 0 }}
+                    className="text-sm font-medium overflow-hidden whitespace-nowrap"
+                  >
+                    {t("nav_users")}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+          </>
+        )}
       </nav>
 
-      {/* Role Badge & Logout & Collapse */}
+      {/* Role Badge, Profile, Logout & Collapse */}
       <div className="px-3 pb-4 space-y-3 border-t border-sidebar-border pt-3">
         <AnimatePresence>
           {!collapsed && (
@@ -124,6 +159,32 @@ const AppSidebar = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Profile link */}
+        <Link to="/profile" className={navLinkClass("/profile")}>
+          {location.pathname === "/profile" && (
+            <motion.div
+              layoutId="activeIndicatorProfile"
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-sidebar-primary active-glow"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          )}
+          <UserCircle className={`w-5 h-5 flex-shrink-0 ${location.pathname === "/profile" ? "text-sidebar-primary" : ""}`} />
+          <AnimatePresence>
+            {!collapsed && (
+              <motion.span
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                className="text-sm font-medium overflow-hidden whitespace-nowrap"
+              >
+                Mon profil
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </Link>
+
+        {/* Logout */}
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-destructive hover:bg-destructive/10 transition-all duration-200 group cursor-pointer"
@@ -142,6 +203,8 @@ const AppSidebar = () => {
             )}
           </AnimatePresence>
         </button>
+
+        {/* Collapse */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="w-full flex items-center justify-center py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"

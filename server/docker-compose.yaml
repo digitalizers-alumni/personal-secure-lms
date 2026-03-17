@@ -1,0 +1,113 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant-pi
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    environment:
+      - QDRANT_PREFER_DIRECT_API=true
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-pi
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    command: redis-server --appendonly yes
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  
+  worker:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: worker
+    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MODEL_CACHE_DIR=./data/models
+      - HUGGINGFACE_HOME=/app/data/models
+      - MODEL_CACHE_DIR=/app/data/models
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/rag_lms.db}
+      # - HUGGINGFACE_HUB_OFFLINE=1         # if bge-m3 is already downloaded on server side
+      # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
+      # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side
+    volumes:
+      - ./app:/app/app
+      - ./data/documents:/app/data/documents
+      - ./data/models:/app/data/models
+      - ./data:/app/data
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G    # memory resource used by BGE-M3 (at least 1.5 GB required)
+
+  api:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    container_name: api
+    ports:
+      - "8000:8000"
+    depends_on:
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - HUGGINGFACE_HOME=/app/data/models
+      - MODEL_CACHE_DIR=/app/data/models
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/rag_lms.db}
+      - QDRANT_HOST=qdrant
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # - HUGGINGFACE_HUB_OFFLINE=1         # if bge-m3 is already downloaded on server side
+      # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
+      # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side
+    volumes:
+      - ./app:/app/app
+      - ./data/documents:/app/data/documents
+      - ./data/models:/app/data/models
+      - ./data:/app/data
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s

@@ -22,7 +22,7 @@ import { EntitePII } from './types';
 
 // URL par défaut du serveur Presidio local
 // Peut être surchargée via configurerPresidio()
-let PRESIDIO_URL = 'http://localhost:5002';
+let PRESIDIO_URL = import.meta.env.VITE_PRESIDIO_URL || 'http://localhost:5002';
 
 // Seuil de confiance minimum — les entités en dessous sont ignorées
 let SCORE_THRESHOLD = 0.4;

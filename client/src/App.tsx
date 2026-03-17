@@ -12,7 +12,14 @@ import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Documents from "./pages/Documents";
 import AIPrompt from "./pages/AIPrompt";
+import CreateCourse from "./pages/CreateCourse";
+import Courses from "./pages/Courses";
+import CourseView from "./pages/CourseView";
 import NotFound from "./pages/NotFound";
+import { LanguageSelector } from "./components/LanguageSelector";
+import AdminGuard from "./components/AdminGuard";
+import UsersPage from "./pages/Users";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -22,15 +29,26 @@ const App = () => (
       <RoleProvider>
         <LanguageProvider>
           <DocumentProvider>
+            <LanguageSelector />
             <Toaster />
             <Sonner />
-            <BrowserRouter>
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/dashboard" element={<AuthGuard><Index /></AuthGuard>} />
                 <Route path="/documents" element={<AuthGuard><Documents /></AuthGuard>} />
                 <Route path="/ai-prompt" element={<AuthGuard><AIPrompt /></AuthGuard>} />
+                <Route path="/create-course" element={<AuthGuard><CreateCourse /></AuthGuard>} />
+                <Route path="/courses" element={<AuthGuard><Courses /></AuthGuard>} />
+                <Route path="/courses/:id" element={<AuthGuard><CourseView /></AuthGuard>} />
+                <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
+                <Route path="/users" element={<AuthGuard><AdminGuard><UsersPage/></AdminGuard></AuthGuard> } />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

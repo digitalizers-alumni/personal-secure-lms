@@ -117,9 +117,33 @@ __pycache__/
 venv/
 .venv/
 env/
-models/
 *.bin
 *.onnx
 *.gguf
 *.pt
 *.safetensors
+
+# Local Data & Vector DB
+server/data/
+*.dat
+*.mmap
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# IDEs
+.vscode/
+.idea/
+.zed/
+*.swp
+*.swo
+.project
+.settings/
+
+# Playwright
+client/playwright-report/
+client/test-results/

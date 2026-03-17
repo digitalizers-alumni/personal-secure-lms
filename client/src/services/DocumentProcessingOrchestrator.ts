@@ -12,14 +12,18 @@ import { DocumentValidatorService } from './DocumentValidatorService';
 import { IntegrationContractHandler } from './IntegrationContractHandler';
 import { ErrorHandlerService } from './ErrorHandlerService';
 import { MetadataStore } from '@/interfaces/MetadataStore';
-import { extraireTexte } from '@/lib/pii';
-import { DocumentMetadata, IntegrationContract, ProcessingError } from '@/types/document';
+import { extraireTexte, détecterPII, traiterDocument, sauvegarderTableTokens, type CarteTokensChiffree } from '@/lib/pii';
+import { DocumentMetadata, IntegrationContract, ProcessingError, DocumentStatus } from '@/types/document';
+import { DetectionResult } from '@/hooks/usePIIDetector';
+import { uploadDocumentToRAG } from '@/lib/api';
 
 export interface ProcessingResult {
   success: boolean;
   contract?: IntegrationContract;
   error?: ProcessingError;
   metadata: DocumentMetadata;
+  extractedText?: string;
+  piiResult?: DetectionResult;
 }
 
 export class DocumentProcessingOrchestrator {
@@ -36,13 +40,18 @@ export class DocumentProcessingOrchestrator {
   }
 
   /**
-   * Process a file through the complete pipeline
+   * Process a file through the scan phase (extraction + PII detection)
    * @param file - File to process
+   * @param jwt - Optional JWT for PII encryption
+   * @param overrideId - Optional ID to use instead of generating one
    * @returns ProcessingResult
    */
-  async processFile(file: File): Promise<ProcessingResult> {
+  async processFile(file: File, jwt?: string, overrideId?: string): Promise<ProcessingResult> {
     // Step 1: File selection and metadata creation
     const metadata = await this.fileSelector.onFileSelected(file);
+    if (overrideId) {
+      metadata.documentId = overrideId;
+    }
     this.metadataStore.create(metadata);
 
     // Step 2: Validation
@@ -94,40 +103,43 @@ export class DocumentProcessingOrchestrator {
     // Step 4: Update status to extracted
     this.metadataStore.updateStatus(metadata.documentId, 'extracted');
 
-    // Step 5: Create integration contract
     try {
+      // Step 6: PII Detection (NEW)
+      this.metadataStore.updateStatus(metadata.documentId, 'scanning' as DocumentStatus);
+      const entites = await détecterPII(extractedText);
+      const piiResult = this.convertToDetectionResult(extractedText, entites);
+
+      // Step 7: PII Encryption (if JWT provided)
+      if (jwt) {
+        const fullResult = await traiterDocument(extractedText, entites, jwt);
+        piiResult.chiffre = fullResult.chiffre;
+      }
+
+      this.metadataStore.updateStatus(
+        metadata.documentId,
+        piiResult.entities.length > 0 ? 'pii-found' as DocumentStatus : 'clean' as DocumentStatus
+      );
+
+      // Step 8: Create integration contract
       const contract = this.contractHandler.create(
         metadata.documentId,
         extractedText,
         metadata
       );
 
-      // Validate the contract
-      const contractValidation = this.contractHandler.validate(contract);
-
-      if (!contractValidation.valid) {
-        return {
-          success: false,
-          error: this.errorHandler.createValidationError(
-            contractValidation.errorMessage || 'Contract validation failed'
-          ),
-          metadata: {
-            ...metadata,
-            status: 'extracted',
-          },
-        };
-      }
-
       return {
         success: true,
         contract,
+        extractedText,
+        piiResult,
         metadata: {
           ...metadata,
-          status: 'extracted',
+          status: piiResult.entities.length > 0 ? ('pii-found' as DocumentStatus) : ('clean' as DocumentStatus),
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error creating contract';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error in pipeline';
+      this.metadataStore.updateStatus(metadata.documentId, 'extraction_failed', errorMessage);
 
       return {
         success: false,
@@ -138,5 +150,63 @@ export class DocumentProcessingOrchestrator {
         },
       };
     }
+  }
+
+  /**
+   * Helper to convert EntitePII to DetectionResult (matches usePIIDetector logic)
+   */
+  private convertToDetectionResult(text: string, entites: any[]): DetectionResult {
+    const entities = entites.map((e, i) => ({
+      entity: e.type,
+      score: 1.0,
+      word: e.valeur,
+      start: e.debut,
+      end: e.fin,
+      index: i,
+    }));
+
+    const tokenMap = new Map<string, string>();
+    let anonymizedText = text;
+    const sorted = [...entites].sort((a, b) => b.debut - a.debut);
+    for (const entite of sorted) {
+      const token = `[[${entite.id}]]`;
+      tokenMap.set(token, entite.valeur);
+      anonymizedText =
+        anonymizedText.slice(0, entite.debut) +
+        token +
+        anonymizedText.slice(entite.fin);
+    }
+
+    return { entities, anonymizedText, tokenMap, rawEntities: entites };
+  }
+
+  /**
+   * Ingest the anonymized file to RAG and update status
+   */
+  async ingestFile(
+    documentId: string, 
+    filename: string, 
+    anonymizedText: string, 
+    chiffre?: CarteTokensChiffree,
+    entityCount?: number,
+    categories?: string[]
+  ): Promise<{ doc_id: string }> {
+    const fileToUpload = new File(
+      [anonymizedText], 
+      `${filename.replace(/\.[^.]+$/, "")}-anonymized.txt`, 
+      { type: "text/plain" }
+    );
+    
+    const response = await uploadDocumentToRAG(fileToUpload);
+    const backendDocId = response.doc_id.toString();
+
+    // Consolidate: Save tokens directly if provided
+    if (chiffre) {
+      await sauvegarderTableTokens(backendDocId, chiffre, entityCount, categories);
+    }
+
+    this.metadataStore.updateStatus(documentId, 'indexed' as DocumentStatus);
+    
+    return { doc_id: backendDocId };
   }
 }

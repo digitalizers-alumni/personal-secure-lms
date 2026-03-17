@@ -16,7 +16,6 @@ __pycache__/
 .idea/
 
 # LLM models & large binaries
-models/
 *.bin
 *.onnx
 *.gguf
@@ -88,6 +87,7 @@ secret.json
 *.sqlite3
 *.db-shm
 *.db-wal
+data/*
 
 # Logs
 *.log
@@ -129,3 +129,6 @@ copilot_settings.json
 
 # VSCode extensions
 .vscode/
+
+# Experimental testing
+exp/

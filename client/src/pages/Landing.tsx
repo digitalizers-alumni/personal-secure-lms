@@ -1,16 +1,9 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Sparkles, Database, Building2, ArrowRight, Globe, Monitor, Server, LogIn } from "lucide-react";
-import { useLanguage, type Locale } from "@/contexts/LanguageContext";
+import { useLanguage, SUPPORTED_LOCALES, type Locale } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
-
-const locales: { code: Locale; label: string }[] = [
-  { code: "fr", label: "FR" },
-  { code: "it", label: "IT" },
-  { code: "de", label: "DE" },
-  { code: "en", label: "EN" },
-  { code: "rm", label: "RM" },
-];
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 const SwissCross = () => (
   <svg viewBox="0 0 32 32" className="w-6 h-6" aria-label="Swiss cross">
@@ -76,27 +69,7 @@ const Landing = () => {
           </div>
         </motion.div>
 
-        {/* Language switcher */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-1 bg-secondary/60 backdrop-blur-sm rounded-full px-1 py-1 border border-border/50"
-        >
-          {locales.map((l) => (
-            <button
-              key={l.code}
-              onClick={() => setLocale(l.code)}
-              className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                locale === l.code
-                  ? "bg-primary text-primary-foreground shadow-sm glow-red"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {l.label}
-            </button>
-          ))}
-          <SwissCross />
-        </motion.div>
+        {/* Language selector is now global */}
       </header>
 
       <main className="relative z-10 max-w-6xl mx-auto px-6 lg:px-12 py-8 lg:py-16 space-y-20">
