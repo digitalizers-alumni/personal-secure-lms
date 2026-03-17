@@ -6,6 +6,7 @@ import { chargerTableTokens, déchiffrerCarteTokens, sauvegarderTableTokens } fr
 
 export interface ScannedDocument {
   id: number;
+  documentId?: string;  // UUID used as IndexedDB key for PII token table
   name: string;
   type: string;
   size: string;
