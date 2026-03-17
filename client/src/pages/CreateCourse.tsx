@@ -17,8 +17,10 @@ import { useDocuments } from "@/contexts/DocumentContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { generateCourse } from "@/lib/api";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { ShieldCheck, AlertTriangle, FileText as FileIconText, File as FileIconGeneric, FileSpreadsheet, Presentation } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface QuizQuestion {
   question: string;
@@ -37,6 +39,7 @@ interface CoursePackage {
 const CreateCourse: React.FC = () => {
   const { documents } = useDocuments();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [course, setCourse] = useState<CoursePackage | null>(null);
   const [step, setStep] = useState<'setup' | 'lesson' | 'quiz' | 'finished'>('setup');
@@ -48,6 +51,7 @@ const CreateCourse: React.FC = () => {
   const [topic, setTopic] = useState("");
   const [goal, setGoal] = useState("");
   const [difficulty, setDifficulty] = useState("Intermédiaire");
+  const [numQuestions, setNumQuestions] = useState(10);
   const [additionalInstructions, setAdditionalInstructions] = useState("");
 
   // Filter indexed documents
@@ -96,13 +100,13 @@ const CreateCourse: React.FC = () => {
         learning_goal: goal,
         difficulty,
         passing_score: 70,
+        num_questions: numQuestions,
         doc_ids: selectedBackendDocIds,
-        additional_instructions: additionalInstructions || "Create a short course with 1 complete lesson in markdown. Generate exactly 10 pedagogical questions. Each question must have exactly 4 options with only one correct answer. Return ONLY the JSON package."
+        additional_instructions: additionalInstructions || `Create a short course with 1 complete lesson in markdown. Generate exactly ${numQuestions} pedagogical questions. Each question must have exactly 4 options with only one correct answer. Return ONLY the JSON package.`
       });
 
-      setCourse(data);
-      setStep('lesson');
       toast.success(t("course_gen_success"));
+      navigate(`/courses/${data.id}`);
     } catch (error) {
       console.error(error);
       toast.error(t("course_gen_error"));
@@ -146,27 +150,15 @@ const CreateCourse: React.FC = () => {
     return (
       <DashboardLayout>
         <div className="container max-w-4xl py-12 space-y-8 animate-in fade-in duration-700">
-          <div className="text-center space-y-4">
-            <div className="inline-flex p-3 rounded-2xl bg-primary/10 text-primary mb-2">
-              <GraduationCap className="w-10 h-10" />
-            </div>
-            <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-              {t("course_gen_title")}
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              {t("course_gen_subtitle")}
-            </p>
-            <div className="flex justify-center gap-3">
-              <Button 
-                variant="outline" 
-                className="rounded-full border-primary/30 text-primary hover:bg-primary/10"
-                onClick={handleLoadDemo}
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                {t("course_gen_demo_btn")}
-              </Button>
-            </div>
-          </div>
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 shadow-inner">
+                <GraduationCap className="w-8 h-8 text-primary" />
+              </div>
+              <CardTitle className="text-3xl font-black">{t("course_gen_setup_title")}</CardTitle>
+              <CardDescription className="text-lg font-medium">
+                {t("course_gen_setup_desc")}
+              </CardDescription>
+            </CardHeader>
 
           <Card className="border-2 shadow-xl overflow-hidden">
             <CardHeader className="bg-muted/30 pb-8">
@@ -209,78 +201,100 @@ const CreateCourse: React.FC = () => {
                   className="h-12 text-base transition-all focus:ring-2 focus:ring-primary"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="additional">{t("course_gen_additional_instructions_label")}</Label>
-                <Input 
-                  id="additional" 
-                  placeholder={t("course_gen_additional_instructions_placeholder")} 
-                  value={additionalInstructions}
-                  onChange={(e) => setAdditionalInstructions(e.target.value)}
-                  className="h-12 text-base transition-all focus:ring-2 focus:ring-primary"
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="num-questions">{t("course_gen_num_questions")}: {numQuestions}</Label>
+                </div>
+                <Slider
+                  id="num-questions"
+                  min={1}
+                  max={20}
+                  step={1}
+                  value={[numQuestions]}
+                  onValueChange={(val) => setNumQuestions(val[0])}
+                  className="py-4"
                 />
               </div>
 
-              <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-bold flex items-center gap-2">
-                    <FileIconText className="w-5 h-5 text-primary" />
-                    {t("course_gen_sources_label")} ({selectedDocIds.size}/{readyDocs.length})
-                  </Label>
-                  <Button variant="ghost" size="sm" onClick={toggleAll} className="h-8 text-xs hover:bg-primary/10 hover:text-primary transition-colors">
-                    {selectedDocIds.size === readyDocs.length ? t("course_gen_deselect_all") : t("course_gen_select_all")}
-                  </Button>
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="rounded-xl border border-border overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
+                      <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <FileIconText className="w-4 h-4 text-primary" />
+                        {t("ai_select_docs")}
+                        {readyDocs.length > 0 && (
+                          <Badge variant="outline" className="ml-1 text-xs">
+                            {selectedDocIds.size}/{readyDocs.length}
+                          </Badge>
+                        )}
+                      </h2>
+                      {readyDocs.length > 0 && (
+                        <Button variant="ghost" size="sm" onClick={toggleAll} className="text-xs h-7">
+                          {selectedDocIds.size === readyDocs.length
+                            ? t("ai_deselect_all")
+                            : t("ai_select_all")}
+                        </Button>
+                      )}
+                    </div>
+
+                    <ScrollArea className="h-[250px] bg-background">
+                      {readyDocs.length === 0 ? (
+                        <div className="py-10 text-center">
+                          <FileIconGeneric className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
+                          <p className="text-sm text-muted-foreground">{t("ai_no_docs_yet")}</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border/50">
+                          {readyDocs.map((doc) => {
+                            const isSelected = selectedDocIds.has(doc.id);
+                            return (
+                              <label
+                                key={doc.id}
+                                className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-colors ${isSelected
+                                    ? "bg-primary/5"
+                                    : "hover:bg-muted/20"
+                                  }`}
+                              >
+                                <Switch
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleDoc(doc.id)}
+                                />
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                  <FileIconText className="w-4 h-4 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {doc.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {doc.type} &middot; {doc.size}
+                                  </p>
+                                </div>
+                                <div className="flex-shrink-0">
+                                  {doc.status === "clean" && (
+                                    <span className="flex items-center gap-1 text-xs text-success">
+                                      <ShieldCheck className="w-3.5 h-3.5" />
+                                      {t("ai_clean")}
+                                    </span>
+                                  )}
+                                  {doc.status === "pii-found" && (
+                                    <span className="flex items-center gap-1 text-xs text-warning">
+                                      <AlertTriangle className="w-3.5 h-3.5" />
+                                      {t("docs_pii_count").replace("{n}", String(doc.entityCount))}
+                                    </span>
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground text-center italic">
+                    {t("course_gen_rag_hint")}
+                  </p>
                 </div>
-                
-                <ScrollArea className="h-[220px] rounded-xl border-2 border-dashed border-muted p-3 bg-muted/20">
-                  {readyDocs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full py-8 text-center space-y-2">
-                      <FileIconGeneric className="w-10 h-10 text-muted-foreground/30" />
-                      <p className="text-sm text-muted-foreground font-medium">{t("course_gen_no_docs")}</p>
-                      <Button variant="link" size="sm" onClick={() => window.location.href='/documents'}>
-                        {t("course_gen_go_index")}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-2">
-                      {readyDocs.map((doc) => {
-                        const isSelected = selectedDocIds.has(doc.id);
-                        return (
-                          <label
-                            key={doc.id}
-                            className={`flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 border-2 ${
-                              isSelected 
-                                ? 'bg-primary/10 border-primary shadow-sm' 
-                                : 'bg-background border-transparent hover:border-muted-foreground/20 hover:bg-muted/30'
-                            }`}
-                          >
-                            <Switch
-                              checked={isSelected}
-                              onCheckedChange={() => toggleDoc(doc.id)}
-                              className="data-[state=checked]:bg-primary"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold truncate text-foreground">{doc.name}</p>
-                              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                                {doc.type} • {doc.size}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {doc.status === "pii-found" ? (
-                                <Badge variant="outline" className="text-[10px] h-5 border-orange-400 bg-orange-50 text-orange-600 px-2 font-black">PII</Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-[10px] h-5 border-green-500 bg-green-50 text-green-600 px-2 font-black">SÛR</Badge>
-                              )}
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </ScrollArea>
-                <p className="text-[11px] text-muted-foreground text-center italic">
-                  {t("course_gen_rag_hint")}
-                </p>
-              </div>
             </CardContent>
             <div className="px-6 pb-8">
               <Button 

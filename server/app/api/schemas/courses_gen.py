@@ -9,7 +9,7 @@ class QuizQuestion(BaseModel):
 class CoursePackage(BaseModel):
     title: str
     lesson_content: str # Markdown format
-    quiz: List[QuizQuestion] = Field(..., min_items=10, max_items=10)
+    quiz: List[QuizQuestion] = Field(..., min_items=1, max_items=20)
     reward_title: str
     reward_message: str
 
@@ -18,5 +18,6 @@ class CourseGenerationRequest(BaseModel):
     learning_goal: str
     difficulty: str # e.g., "Débutant", "Intermédiaire", "Avancé"
     passing_score: int = 70
+    num_questions: int = 10
     doc_ids: Optional[List[int]] = None
     additional_instructions: Optional[str] = None
