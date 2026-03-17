@@ -11,6 +11,7 @@ from app.models.documents import Document
 from app.api.schemas.documents import DocumentUploadResponse, DocumentStatusResponse
 from app.worker.tasks import ingest_document
 from app.rag.indexer import delete_document as delete_rag_document
+import re
 import uuid
 import hashlib
 
@@ -19,6 +20,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 STORAGE_DIR = os.getenv("STORAGE_DIR", "./data/documents")
+
+def _sanitize_filename(filename: str) -> str:
+    """
+    Extracts the basename and replaces unsafe characters with underscores.
+    """
+    # 1. Take only the base name (prevents path traversal like ../../etc/passwd)
+    base_name = os.path.basename(filename)
+    # 2. Keep only letters, numbers, dots, and hyphens (replaces everything else with _)
+    clean_name = re.sub(r'[^a-zA-Z0-9.\-]', '_', base_name)
+    # 3. Collapse multiple underscores into one
+    clean_name = re.sub(r'_+', '_', clean_name)
+    return clean_name
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
 ALLOWED_MIME_TYPES = {
     "application/pdf",
@@ -30,8 +43,9 @@ MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
 def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
     os.makedirs(STORAGE_DIR, exist_ok=True)
     
-    # 1. Check extension
-    extension = os.path.splitext(file.filename)[1].lower()
+    # Sanitize the filename early
+    safe_filename = _sanitize_filename(file.filename)
+    extension = os.path.splitext(safe_filename)[1].lower()
     
     if extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=415, detail=f"Unsupported file type: {extension}")
@@ -59,7 +73,7 @@ def _save_file(file: UploadFile) -> Tuple[str, str, str, int]:
     file.file.seek(0)
     hash_sha256_obj = hashlib.sha256()
 
-    unique_filename = f"{uuid.uuid4()}_{file.filename}"
+    unique_filename = f"{uuid.uuid4()}_{safe_filename}"
     file_path = os.path.join(STORAGE_DIR, unique_filename)
     
     total_size = 0
