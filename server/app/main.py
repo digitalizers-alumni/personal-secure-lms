@@ -52,7 +52,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Auth route: /api/token
+# Auth routes: /auth/login and /auth/register
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 
 # Protected routes (require JWT)
@@ -63,6 +63,7 @@ app.include_router(
     dependencies=[Depends(get_current_user)]
 )
 
+# Unified Generation route (RAG): /api/generate
 app.include_router(
     generate_router, 
     prefix="/api", 
