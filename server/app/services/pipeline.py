@@ -27,7 +27,7 @@ Answer:"""
 async def run_rag_pipeline(
     prompt: str, 
     user_id: Optional[str] = None, 
-    doc_ids: Optional[List[int]] = None
+    selected_doc_ids: Optional[List[int]] = None
 ) -> dict:
     """
     Full RAG pipeline:
@@ -45,7 +45,7 @@ async def run_rag_pipeline(
 
     # Step 2 — RAG retrieval using full prompt + keywords combined
     search_query = prompt + " " + " ".join(keywords)
-    chunks = search(query=search_query, top_k=5, user_id=user_id, doc_ids=doc_ids)
+    chunks = search(query=search_query, top_k=5, user_id=user_id, doc_ids=selected_doc_ids)
 
     # Step 3 — build augmented prompt
     if chunks:

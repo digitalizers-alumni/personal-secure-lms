@@ -51,5 +51,5 @@ def search(
         for hit in results
     ]
 
-    logger.info("Retrieved %s chunks for query (user_id=%s)", len(chunks), user_id)
+    logger.info("Retrieved %s chunks (user_id=%s, filtered_docs=%s)", len(chunks), user_id, bool(doc_ids))
     return chunks

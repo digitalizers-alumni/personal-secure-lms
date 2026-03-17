@@ -18,7 +18,7 @@ class ChunkSource(BaseModel):
 class GenerateRequest(BaseModel):
     prompt: str = Field(..., description="The query/instruction from the user")
     user_id: Optional[str] = None
-    doc_ids: Optional[List[int]] = None
+    selected_doc_ids: Optional[List[int]] = None
 
 
 class GenerateResponse(BaseModel):
@@ -45,7 +45,7 @@ async def generate(
         result = await run_rag_pipeline(
             prompt=request.prompt,
             user_id=user_id,
-            doc_ids=request.doc_ids
+            selected_doc_ids=request.selected_doc_ids
         )
         return GenerateResponse(
             answer=result["answer"],
