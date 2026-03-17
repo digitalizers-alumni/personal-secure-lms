@@ -16,7 +16,6 @@ import CreateCourse from "./pages/CreateCourse";
 import Courses from "./pages/Courses";
 import CourseView from "./pages/CourseView";
 import NotFound from "./pages/NotFound";
-import { LanguageSelector } from "./components/LanguageSelector";
 import AdminGuard from "./components/AdminGuard";
 import UsersPage from "./pages/Users";
 import Profile from "./pages/Profile";
@@ -29,7 +28,6 @@ const App = () => (
       <RoleProvider>
         <LanguageProvider>
           <DocumentProvider>
-            <LanguageSelector />
             <Toaster />
             <Sonner />
             <BrowserRouter

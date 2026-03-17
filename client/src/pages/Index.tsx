@@ -134,7 +134,7 @@ const Index = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-xl font-black text-foreground">{t("nav_documents")}</p>
-                    <Badge variant="secondary" className="bg-primary/10 text-primary border-none">Propulsé par RAG</Badge>
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-none">{t("powered_by_rag")}</Badge>
                   </div>
                   <p className="text-muted-foreground mt-1 max-w-lg font-medium">
                     {t("dash_quick_upload_desc")}
@@ -143,7 +143,7 @@ const Index = () => {
               </div>
               <div className="flex flex-col items-end gap-2">
                 <span className="text-sm font-bold text-primary group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                  Explorer <ArrowRight className="w-4 h-4" />
+                  {t("explore")} <ArrowRight className="w-4 h-4" />
                 </span>
                 <div className="flex -space-x-2">
                   <div className="w-8 h-8 rounded-full border-2 border-background bg-blue-100 flex items-center justify-center" title="Privacy Protected"><Lock className="w-3.5 h-3.5 text-blue-600" /></div>

@@ -17,6 +17,7 @@ import {
   Users as UsersIcon, Shield, User as UserIcon,
   Trash2, UserCheck, UserX, Loader2, Search, Plus,
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const container = {
   hidden: { opacity: 0 },
@@ -29,6 +30,7 @@ const item = {
 };
 
 const Users = () => {
+  const { t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [filtered, setFiltered] = useState<User[]>([]);
   const [search, setSearch] = useState("");
@@ -53,7 +55,7 @@ const Users = () => {
   useEffect(() => {
     listUsers()
       .then((data) => { setUsers(data); setFiltered(data); })
-      .catch((err) => toast({ variant: "destructive", title: "Erreur", description: err.message }))
+      .catch((err) => toast({ variant: "destructive", title: t("login_error"), description: err.message }))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -86,9 +88,9 @@ const Users = () => {
       });
       setUsers((prev) => prev.map((u) => u.id === updated.id ? updated : u));
       setEditingUser(null);
-      toast({ title: "Utilisateur mis à jour" });
+      toast({ title: t("user_updated") });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message });
+      toast({ variant: "destructive", title: t("login_error"), description: err.message });
     } finally {
       setIsSaving(false);
     }
@@ -113,9 +115,9 @@ const Users = () => {
       setNewLast("");
       setNewPassword("");
       setNewRole("USER");
-      toast({ title: "Utilisateur créé" });
+      toast({ title: t("user_created") });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message });
+      toast({ variant: "destructive", title: t("login_error"), description: err.message });
     } finally {
       setIsCreating(false);
     }
@@ -127,9 +129,9 @@ const Users = () => {
       setUsers((prev) => prev.map((u) =>
         u.id === userId ? { ...u, is_deleted: true } : u
       ));
-      toast({ title: "Utilisateur supprimé" });
+      toast({ title: t("user_deleted") });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message });
+      toast({ variant: "destructive", title: t("login_error"), description: err.message });
     }
   };
 
@@ -139,9 +141,9 @@ const Users = () => {
       setUsers((prev) => prev.map((u) =>
         u.id === userId ? { ...u, is_active: true } : u
       ));
-      toast({ title: "Utilisateur activé" });
+      toast({ title: t("user_activated") });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message });
+      toast({ variant: "destructive", title: t("login_error"), description: err.message });
     }
   };
 
@@ -151,9 +153,9 @@ const Users = () => {
       setUsers((prev) => prev.map((u) =>
         u.id === userId ? { ...u, is_active: false } : u
       ));
-      toast({ title: "Utilisateur désactivé" });
+      toast({ title: t("user_deactivated") });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erreur", description: err.message });
+      toast({ variant: "destructive", title: t("login_error"), description: err.message });
     }
   };
 
@@ -168,9 +170,9 @@ const Users = () => {
           className="flex items-center justify-between"
         >
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Utilisateurs</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t("nav_users")}</h1>
             <p className="text-muted-foreground mt-1">
-              Gérez les comptes utilisateurs de l'organisation
+              {t("manage_user_accounts")}
             </p>
           </div>
           <Button
@@ -178,7 +180,7 @@ const Users = () => {
             className="gradient-primary text-primary-foreground gap-2"
           >
             <Plus className="w-4 h-4" />
-            Nouvel utilisateur
+            {t("new_user")}
           </Button>
         </motion.div>
 
@@ -191,7 +193,7 @@ const Users = () => {
         >
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher par nom ou email..."
+            placeholder={t("search_by_name_email")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-background/50"
@@ -213,7 +215,7 @@ const Users = () => {
             className="text-center py-20"
           >
             <UsersIcon className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-sm text-muted-foreground">Aucun utilisateur trouvé.</p>
+            <p className="text-sm text-muted-foreground">{t("no_users_found")}</p>
           </motion.div>
         )}
 
@@ -229,10 +231,10 @@ const Users = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Utilisateur</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rôle</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Statut</th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("user_label")}</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("role")}</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("status")}</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -263,18 +265,18 @@ const Users = () => {
                       <td className="py-3 px-4">
                         <span className="flex items-center gap-1.5 text-xs">
                           {user.user_role?.toUpperCase() === "ADMIN"
-                            ? <><Shield className="w-3.5 h-3.5 text-primary" /> Administrateur</>
-                            : <><UserIcon className="w-3.5 h-3.5 text-muted-foreground" /> Utilisateur</>
+                            ? <><Shield className="w-3.5 h-3.5 text-primary" /> {t("role_admin")}</>
+                            : <><UserIcon className="w-3.5 h-3.5 text-muted-foreground" /> {t("role_user")}</>
                           }
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         {user.is_deleted ? (
-                          <Badge variant="destructive" className="text-[10px]">Supprimé</Badge>
+                          <Badge variant="destructive" className="text-[10px]">{t("deleted")}</Badge>
                         ) : user.is_active ? (
-                          <Badge variant="default" className="text-[10px]">Actif</Badge>
+                          <Badge variant="default" className="text-[10px]">{t("active_status")}</Badge>
                         ) : (
-                          <Badge variant="secondary" className="text-[10px]">Inactif</Badge>
+                          <Badge variant="secondary" className="text-[10px]">{t("inactive")}</Badge>
                         )}
                       </td>
                       <td className="py-3 px-4">
@@ -287,7 +289,7 @@ const Users = () => {
                                 className="h-7 text-xs"
                                 onClick={() => openEdit(user)}
                               >
-                                Modifier
+                                {t("edit")}
                               </Button>
                               {user.is_active ? (
                                 <Button
@@ -332,23 +334,23 @@ const Users = () => {
         <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
           <DialogContent className="glass-card border-border">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Modifier l'utilisateur</DialogTitle>
+              <DialogTitle className="text-foreground">{t("edit_user")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3 py-2">
               <Input
-                placeholder="Prénom"
+                placeholder={t("first_name")}
                 value={editFirst}
                 onChange={(e) => setEditFirst(e.target.value)}
                 className="bg-background/50"
               />
               <Input
-                placeholder="Nom"
+                placeholder={t("last_name")}
                 value={editLast}
                 onChange={(e) => setEditLast(e.target.value)}
                 className="bg-background/50"
               />
               <Input
-                placeholder="Fonction (optionnel)"
+                placeholder={t("job_function_optional")}
                 value={editJob}
                 onChange={(e) => setEditJob(e.target.value)}
                 className="bg-background/50"
@@ -356,7 +358,7 @@ const Users = () => {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditingUser(null)}>
-                Annuler
+                {t("cancel")}
               </Button>
               <Button
                 onClick={handleSave}
@@ -364,7 +366,7 @@ const Users = () => {
                 className="gradient-primary text-primary-foreground gap-2"
               >
                 {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                Sauvegarder
+                {t("save")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -374,30 +376,30 @@ const Users = () => {
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogContent className="glass-card border-border">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Nouvel utilisateur</DialogTitle>
+              <DialogTitle className="text-foreground">{t("new_user")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3 py-2">
               <Input
-                placeholder="Prénom"
+                placeholder={t("first_name")}
                 value={newFirst}
                 onChange={(e) => setNewFirst(e.target.value)}
                 className="bg-background/50"
               />
               <Input
-                placeholder="Nom"
+                placeholder={t("last_name")}
                 value={newLast}
                 onChange={(e) => setNewLast(e.target.value)}
                 className="bg-background/50"
               />
               <Input
-                placeholder="Email"
+                placeholder={t("email")}
                 type="email"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 className="bg-background/50"
               />
               <Input
-                placeholder="Mot de passe"
+                placeholder={t("password")}
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -408,13 +410,13 @@ const Users = () => {
                 onChange={(e) => setNewRole(e.target.value)}
                 className="w-full h-10 px-3 rounded-md border border-border bg-background/50 text-sm text-foreground"
               >
-                <option value="USER">Utilisateur</option>
-                <option value="ADMIN">Administrateur</option>
+                <option value="USER">{t("role_user")}</option>
+                <option value="ADMIN">{t("role_admin")}</option>
               </select>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                Annuler
+                {t("cancel")}
               </Button>
               <Button
                 onClick={handleCreate}
@@ -422,7 +424,7 @@ const Users = () => {
                 className="gradient-primary text-primary-foreground gap-2"
               >
                 {isCreating && <Loader2 className="w-4 h-4 animate-spin" />}
-                Créer
+                {t("create")}
               </Button>
             </DialogFooter>
           </DialogContent>

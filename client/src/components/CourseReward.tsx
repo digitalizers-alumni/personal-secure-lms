@@ -44,7 +44,7 @@ export const CourseReward: React.FC<CourseRewardProps> = ({ score, title, messag
             size="lg" 
             className="w-full h-16 text-xl font-black bg-[#ef4444] hover:bg-[#dc2626] text-white rounded-2xl shadow-2xl shadow-red-900/20 transition-all active:scale-[0.98]"
           >
-            {t("nav_logout") === "Déconnexion" ? "Continuer l'Aventure" : "Continue Journey"}
+            {t("continue_adventure")}
           </Button>
         </CardContent>
       </Card>
