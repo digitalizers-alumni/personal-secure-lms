@@ -88,12 +88,12 @@ export async function uploadDocumentToRAG(file: File): Promise<{ doc_id: number;
 }
 
 export async function listDocuments(): Promise<Array<{ doc_id: number; filename: string; status: string; created_at: string }>> {
-  const response = await apiFetch("/api/documents/");
+  const response = await apiFetch("/api/documents");
   return response.json();
 }
 
 export async function listCourses(): Promise<Course[]> {
-  const response = await apiFetch("/api/courses/");
+  const response = await apiFetch("/api/courses");
   return response.json();
 }
 
@@ -114,7 +114,7 @@ export async function deleteCourse(id: string): Promise<void> {
   });
 }
 
-export async function generateFromRAG(prompt: string, documentIds: number[] = []): Promise<{
+export async function generateFromRAG(prompt: string, documentIds: number[] = [], language?: string): Promise<{
   answer: string;
   keywords: string[];
   sources: { text: string; doc_id: number; score: number }[];
@@ -124,7 +124,7 @@ export async function generateFromRAG(prompt: string, documentIds: number[] = []
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ prompt, selected_doc_ids: documentIds }),
+    body: JSON.stringify({ prompt, selected_doc_ids: documentIds, language }),
   });
 
   return response.json();
@@ -137,6 +137,7 @@ export async function generateCourse(data: {
   passing_score: number;
   num_questions: number;
   selected_doc_ids: number[];
+  language?: string;
   additional_instructions?: string;
 }): Promise<Course> {
   const response = await apiFetch("/api/courses/generate", {

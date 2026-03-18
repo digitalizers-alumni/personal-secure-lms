@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from "react";
+import { viderToutesLesTableTokens } from "@/lib/pii/token-table";
 
 export type Role = "admin" | "user" | "guest";
 
@@ -30,6 +31,10 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("lumina_token");
     localStorage.removeItem("lumina_role");
     localStorage.removeItem("lumina_last_activity");
+    
+    // Clear local PII tokens on logout
+    viderToutesLesTableTokens().catch(err => console.error("Failed to clear PII tokens:", err));
+    
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, []);
 

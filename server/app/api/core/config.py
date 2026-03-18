@@ -9,6 +9,14 @@ class Settings(BaseSettings):
     
     # Security
     SECRET_KEY: str = "lumina-swiss-prod-secret-key-change-me"
+
+    @field_validator("SECRET_KEY")
+    def check_secret_key(cls, v):
+        if v == "lumina-swiss-prod-secret-key-change-me":
+            import os
+            if os.getenv("ENV") == "production":
+                raise ValueError("SECRET_KEY cannot be the default value in production")
+        return v
     
     # Database
     DATABASE_URL: str = "sqlite:///./data/rag_lms.db"

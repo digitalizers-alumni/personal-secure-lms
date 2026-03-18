@@ -2,7 +2,7 @@ import os # Re-adding os import
 import logging
 from app.api.core.security import get_current_user
 from app.models.users import User
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Tuple
@@ -113,7 +113,11 @@ async def upload_document(
         file_path=file_path,
         mime_type=mime_type,
         hash_sha256=hash_sha256,
-        status="pending"
+        status="pending",
+        metadata_json={
+            "size_bytes": file_size,
+            "mime_type": mime_type,
+        }
     )
     db.add(doc)
     try:

@@ -10,8 +10,18 @@ from app.rag.retriever import search
 from app.api.core.security import get_current_user
 from app.models.users import User
 import json
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+LANGUAGE_MAP = {
+    "fr": "en français",
+    "en": "in English",
+    "it": "in italiano",
+    "de": "auf Deutsch",
+    "rm": "en rumantsch"
+}
 
 @router.post("", response_model=CourseSchema, status_code=status.HTTP_201_CREATED)
 def create_course(
@@ -76,7 +86,10 @@ def update_course(
         Course.user_id == current_user.id
     ).first()
     if not db_course:
-        raise HTTPException(status_code=404, detail="Course not found or access denied")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail={"code": "COURSE_NOT_FOUND", "message": "Course not found or access denied"}
+        )
     
     update_data = course_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -99,7 +112,10 @@ def update_course_status(
         Course.user_id == current_user.id
     ).first()
     if not db_course:
-        raise HTTPException(status_code=404, detail="Course not found or access denied")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail={"code": "COURSE_NOT_FOUND", "message": "Course not found or access denied"}
+        )
     db_course.status = status
     db.commit()
     db.refresh(db_course)
@@ -114,8 +130,10 @@ async def generate_course(
     """
     Generate a structured course with lesson, quiz, and reward, then save it.
     """
+    lang_label = LANGUAGE_MAP.get(request.language, "en français")
     system_prompt = f"""You are an expert educator and world-class instructional designer. 
 Generate a comprehensive, high-quality structured mini-course in JSON format.
+IMPORTANT: The entire course content (title, lesson_content, quiz, reward_title, reward_message) MUST be written EXCLUSIVELY {lang_label}.
 
 The course must be VERY DETAILED, pedagogical, and follow this exact JSON structure:
 {{
@@ -141,13 +159,15 @@ CONTENT RULES for 'lesson_content':
 6. DO NOT be concise. Be generous with explanations.
 
 JSON & FORMATTING RULES:
-1. Return EXACTLY {request.num_questions} quiz questions with 4 options each.
-2. IMPORTANT: All newlines in 'lesson_content' MUST be escaped as the literal string '\\n' (a backslash followed by 'n').
-3. DO NOT use actual carriage returns or literal newlines inside the JSON string values.
-4. Use standard JSON escaping for double quotes (\").
-5. NEVER escape single quotes (') with a backslash. Write them normally as '.
-6. Return ONLY the JSON object, NO markdown code blocks, no preamble, and no extra text.
-7. GROUND the content in the provided context. If no context, use your expert knowledge.
+1. Return EXACTLY {request.num_questions} quiz questions.
+2. Each question MUST have EXACTLY 4 distinct items in the 'options' array.
+3. The 'correct_answer' MUST be an exact string match for one of the items in 'options'.
+4. IMPORTANT: All newlines in 'lesson_content' MUST be escaped as the literal string '\\n' (a backslash followed by 'n').
+5. DO NOT use actual carriage returns or literal newlines inside the JSON string values.
+6. Use standard JSON escaping for double quotes (\").
+7. NEVER escape single quotes (') with a backslash. Write them normally as '.
+8. Return ONLY the JSON object, NO markdown code blocks, no preamble, and no extra text.
+9. GROUND the content in the provided context. If no context, use your expert knowledge.
 
 ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
 """
@@ -171,12 +191,26 @@ ADDITIONAL CONSTRAINTS: {request.additional_instructions or 'None'}
             raise HTTPException(status_code=500, detail=f"Course structure error: {str(e)}")
         
         # Create and save Course entry
-        db_course = Course(
-            ...
-        )
-        db.add(db_course)
-        db.commit()
-        db.refresh(db_course)
+        try:
+            db_course = Course(
+                user_id=str(current_user.id),
+                title=pkg.title,
+                description=f"Generated course about {request.topic}",
+                content_markdown=pkg.lesson_content,
+                generated_by_llm=True,
+                list_src_docs_ids=request.selected_doc_ids,
+                target_job_positions=[current_user.job_function] if current_user.job_function else [],
+                quiz=[q.model_dump() for q in pkg.quiz],
+                reward={"reward_title": pkg.reward_title, "reward_message": pkg.reward_message}
+            )
+            db.add(db_course)
+            db.commit()
+            db.refresh(db_course)
+            logger.info("Course created successfully: %s", db_course.id)
+        except Exception as db_err:
+            db.rollback()
+            logger.error("Database error during course creation: %s", str(db_err), exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Database error: {str(db_err)}")
         
         return db_course
     except HTTPException:
@@ -192,10 +226,13 @@ def delete_course(
 ):
     course = db.query(Course).filter(
         Course.id == course_id,
-        Course.user_id == current_user.email
+        Course.user_id == current_user.id
     ).first()
     if not course:
-        raise HTTPException(status_code=404, detail="Course not found or access denied")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail={"code": "COURSE_NOT_FOUND", "message": "Course not found or access denied"}
+        )
     course.is_deleted = True
     db.commit()
     return None

@@ -61,7 +61,7 @@ async def register(user_in: UserCreate, db: Session = Depends(get_db)):
         first_name=user_in.first_name,
         last_name=user_in.last_name,
         job_function=user_in.job_function,
-        user_role=user_in.user_role
+        user_role="USER"
     )
     db.add(db_user)
     db.commit()

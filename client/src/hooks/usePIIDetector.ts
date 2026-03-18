@@ -81,7 +81,7 @@ export function usePIIDetector(): UsePIIDetectorReturn {
   const detect = useCallback(async (text: string, jwt?: string, backendDocId?: string) => {
     setIsLoading(true);
     try {
-      const entites = await détecterPII(text, (p) => setLoadProgress(p));
+      const entites = await détecterPII(text, (p) => setLoadProgress(p), backendDocId);
       const result = convertToLegacy(text, entites);
       
       let tableToSave: CarteTokensChiffree | undefined;

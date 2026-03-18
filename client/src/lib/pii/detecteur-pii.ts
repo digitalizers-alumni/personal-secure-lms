@@ -413,11 +413,13 @@ function dédupliquer(entites: Omit<EntitePII, 'id'>[]): Omit<EntitePII, 'id'>[]
  * @returns       - entités avec ID assigné
  */
 function attribuerIdentifiants(
-  entites: Omit<EntitePII, 'id'>[]
+  entites: Omit<EntitePII, 'id'>[],
+  documentId?: string
 ): EntitePII[] {
+  const prefix = documentId ? `DOC_${documentId}_` : '';
   return entites.map((entite, index) => ({
     ...entite,
-    id: `PII_${String(index + 1).padStart(3, '0')}`, // PII_001, PII_002...
+    id: `${prefix}PII_${String(index + 1).padStart(3, '0')}`,
   }));
 }
 
@@ -445,7 +447,8 @@ function attribuerIdentifiants(
  */
 export async function détecterPII(
   texte: string,
-  rappelChargement?: (progression: number) => void
+  rappelChargement?: (progression: number) => void,
+  documentId?: string
 ): Promise<EntitePII[]> {
   // Charger le modèle (instantané si déjà en cache)
   const ner = await obtenirPipeline();
@@ -487,7 +490,7 @@ export async function détecterPII(
   // Fusionner les deux sources, dédupliquer, puis attribuer les IDs
   const toutesLesEntités = [...entitésBrutes, ...entitésRegex];
   const sansDoublons = dédupliquer(toutesLesEntités);
-  const avecIdentifiants = attribuerIdentifiants(sansDoublons);
+  const avecIdentifiants = attribuerIdentifiants(sansDoublons, documentId);
 
   // Informer l'UI que la détection est terminée
   if (rappelChargement) rappelChargement(100);
