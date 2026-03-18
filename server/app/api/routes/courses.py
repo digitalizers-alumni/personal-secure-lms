@@ -76,7 +76,10 @@ def update_course(
         Course.user_id == current_user.id
     ).first()
     if not db_course:
-        raise HTTPException(status_code=404, detail="Course not found or access denied")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail={"code": "COURSE_NOT_FOUND", "message": "Course not found or access denied"}
+        )
     
     update_data = course_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -99,7 +102,10 @@ def update_course_status(
         Course.user_id == current_user.id
     ).first()
     if not db_course:
-        raise HTTPException(status_code=404, detail="Course not found or access denied")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail={"code": "COURSE_NOT_FOUND", "message": "Course not found or access denied"}
+        )
     db_course.status = status
     db.commit()
     db.refresh(db_course)
@@ -192,10 +198,13 @@ def delete_course(
 ):
     course = db.query(Course).filter(
         Course.id == course_id,
-        Course.user_id == current_user.email
+        Course.user_id == current_user.id
     ).first()
     if not course:
-        raise HTTPException(status_code=404, detail="Course not found or access denied")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail={"code": "COURSE_NOT_FOUND", "message": "Course not found or access denied"}
+        )
     course.is_deleted = True
     db.commit()
     return None
