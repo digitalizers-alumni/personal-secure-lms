@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import {
   listUsers, updateUser, deleteUser,
-  activateUser, deactivateUser, register, type User
+  activateUser, deactivateUser, createUser, type User
 } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import {
@@ -99,16 +99,15 @@ const Users = () => {
   const handleCreate = async () => {
     setIsCreating(true);
     try {
-      await register({
+      const created = await createUser({
         email: newEmail,
         password: newPassword,
         first_name: newFirst,
         last_name: newLast,
         user_role: newRole,
       });
-      const data = await listUsers();
-      setUsers(data);
-      setFiltered(data);
+      // Optimistically add the new user without a full refetch
+      setUsers((prev) => [...prev, created]);
       setCreateDialogOpen(false);
       setNewEmail("");
       setNewFirst("");
