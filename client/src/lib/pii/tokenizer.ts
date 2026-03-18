@@ -39,26 +39,36 @@ function censurerDocument(
   texte: string,
   entites: EntitePII[]
 ): { texteCensure: string; carteTokens: Record<string, string> } {
-  // Construire la carte de tokens : { PII_001: "Jean Dupont", PII_002: "jean@gmail.com" }
   const carteTokens: Record<string, string> = {};
   for (const entite of entites) {
     carteTokens[entite.id] = entite.valeur;
   }
 
-  // Trier les entités par position de début décroissante (dernière entité en premier)
-  const entitesTriees = [...entites].sort((a, b) => b.debut - a.debut);
+  // Trier les entités par position de début croissante
+  const entitesTriees = [...entites].sort((a, b) => a.debut - b.debut);
 
-  // Remplacer chaque entité par son token placeholder, de la fin vers le début
-  let texteCensure = texte;
+  const fragments: string[] = [];
+  let lastPos = 0;
+
   for (const entite of entitesTriees) {
     const placeholder = `[[${entite.id}]]`;
-    texteCensure =
-      texteCensure.slice(0, entite.debut) +
-      placeholder +
-      texteCensure.slice(entite.fin);
+    
+    // Texte avant cette entité
+    if (entite.debut > lastPos) {
+      fragments.push(texte.slice(lastPos, entite.debut));
+    }
+    
+    // Le placeholder
+    fragments.push(placeholder);
+    lastPos = entite.fin;
   }
 
-  return { texteCensure, carteTokens };
+  // Texte restant après la dernière entité
+  if (lastPos < texte.length) {
+    fragments.push(texte.slice(lastPos));
+  }
+
+  return { texteCensure: fragments.join(''), carteTokens };
 }
 
 // ---------------------

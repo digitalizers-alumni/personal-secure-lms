@@ -106,7 +106,17 @@ export class DocumentProcessingOrchestrator {
     try {
       // Step 6: PII Detection (NEW)
       this.metadataStore.updateStatus(metadata.documentId, 'scanning' as DocumentStatus);
-      const entites = await détecterPII(extractedText);
+      
+      const entites = await détecterPII(extractedText, (progress) => {
+        // Update status with percentage if possible, or just log
+        console.log(`PII Detection Progress for ${metadata.documentId}: ${progress}%`);
+        this.metadataStore.updateStatus(
+          metadata.documentId, 
+          'scanning' as DocumentStatus, 
+          `Analyse PII : ${progress}%`
+        );
+      });
+      
       const piiResult = this.convertToDetectionResult(extractedText, entites);
 
       // Step 7: PII Encryption (if JWT provided)
@@ -166,16 +176,32 @@ export class DocumentProcessingOrchestrator {
     }));
 
     const tokenMap = new Map<string, string>();
-    let anonymizedText = text;
-    const sorted = [...entites].sort((a, b) => b.debut - a.debut);
+    const sorted = [...entites].sort((a, b) => a.debut - b.debut);
+    
+    // Optimisation : reconstruction par fragments pour éviter O(N^2) allocations de chaînes
+    const fragments: string[] = [];
+    let lastPos = 0;
+    
     for (const entite of sorted) {
       const token = `[[${entite.id}]]`;
       tokenMap.set(token, entite.valeur);
-      anonymizedText =
-        anonymizedText.slice(0, entite.debut) +
-        token +
-        anonymizedText.slice(entite.fin);
+      
+      // Texte avant l'entité
+      if (entite.debut > lastPos) {
+        fragments.push(text.slice(lastPos, entite.debut));
+      }
+      
+      // Le token
+      fragments.push(token);
+      lastPos = entite.fin;
     }
+    
+    // Reste du texte
+    if (lastPos < text.length) {
+      fragments.push(text.slice(lastPos));
+    }
+
+    const anonymizedText = fragments.join('');
 
     return { entities, anonymizedText, tokenMap, rawEntities: entites };
   }

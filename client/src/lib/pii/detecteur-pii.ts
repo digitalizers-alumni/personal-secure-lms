@@ -23,9 +23,13 @@
 import { pipeline, env } from '@huggingface/transformers';
 import { découperTexte } from './decoupeur';
 import { EntitePII } from './types';
-// ---------------------
-// Configuration du modèle
-// ---------------------
+// Configuration de l'environnement Transformers.js pour la performance maximale
+env.allowLocalModels = false;
+env.allowRemoteModels = true;
+// Activer WebGPU si disponible (accélération matérielle massive sur Mac)
+if (typeof navigator !== 'undefined' && (navigator as any).gpu) {
+  (env as any).allowWebGPU = true;
+}
 
 // Le cache navigateur est activé par défaut dans @huggingface/transformers v3+
 
@@ -60,7 +64,12 @@ async function obtenirPipeline(): Promise<Awaited<ReturnType<typeof pipeline>>> 
   if (pipelineNER) return pipelineNER;
   if (loadingPromise) return loadingPromise;
 
-  loadingPromise = pipeline('token-classification', NOM_MODELE);
+  loadingPromise = pipeline('token-classification', NOM_MODELE, {
+    // Tenter WebGPU en priorité, fallback automatique vers WASM sinon
+    device: 'webgpu',
+    // Utiliser la version quantifiée pour économiser RAM et CPU
+    quantized: true,
+  } as any);
 
   pipelineNER = await loadingPromise;
   loadingPromise = null;
@@ -157,13 +166,16 @@ function agrégerTokensNER(
     if (mot.length > 0) {
       const escaped = mot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const patternFlexible = escaped.replace(/\s+/g, '\\s+');
-      const regex = new RegExp(patternFlexible, 'i');
-      const match = regex.exec(texteOriginal.slice(posRecherche));
+      // On utilise le flag 'g' pour que lastIndex soit respecté par exec()
+      const regex = new RegExp(patternFlexible, 'gi');
+      regex.lastIndex = posRecherche;
+      
+      const match = regex.exec(texteOriginal);
 
       if (match) {
-        const pos = posRecherche + match.index;
+        const pos = match.index;
         entités.push({
-          mot: texteOriginal.slice(pos, pos + match[0].length), // Garder la casse originale
+          mot: texteOriginal.slice(pos, pos + match[0].length),
           type: typeEntité,
           score,
           debut: pos,
@@ -269,7 +281,7 @@ const PATTERNS_REGEX: { type: string; regex: RegExp }[] = [
     // Salaires et montants financiers : 3 500 €, 45 000 € brut, 2500EUR, etc.
     // Très fréquents dans les contrats de travail et documents RH
     type: 'MONTANT',
-    regex: /\b\d[\d\s]*(?:,\d{1,2})?\s*(?:€|EUR|euros?)(?!\w)/gi,
+    regex: /\b\d[\d\s]{0,20}(?:,\d{1,2})?\s*(?:€|EUR|euros?)(?!\w)/gi,
   },
 
   // ── Dates ─────────────────────────────────────────────────────────────
@@ -334,7 +346,7 @@ const PATTERNS_REGEX: { type: string; regex: RegExp }[] = [
   {
     // Montants en CHF : 3'500 CHF, CHF 45 000.00, 2500 Fr.
     type: 'MONTANT',
-    regex: /\b\d[\d\s']*(?:\.\d{1,2})?\s*(?:CHF|Fr\.|francs?)\b/gi,
+    regex: /\b\d[\d\s']{0,20}(?:\.\d{1,2})?\s*(?:CHF|Fr\.|francs?)\b/gi,
   },
   {
     // Montants en CHF (préfixe) : CHF 3'500, Fr. 45 000
@@ -354,9 +366,7 @@ function détecterParRegex(texte: string): Omit<EntitePII, 'id'>[] {
   const résultats: Omit<EntitePII, 'id'>[] = [];
 
   for (const { type, regex } of PATTERNS_REGEX) {
-    // Réinitialiser l'index de la regex à chaque utilisation
     regex.lastIndex = 0;
-
     let match;
     while ((match = regex.exec(texte)) !== null) {
       résultats.push({
@@ -365,7 +375,11 @@ function détecterParRegex(texte: string): Omit<EntitePII, 'id'>[] {
         fin: match.index + match[0].length,
         type,
       });
+      
+      // Protection contre les boucles infinies ou les textes trop denses
+      if (résultats.length > 50000) break;
     }
+    if (résultats.length > 50000) break;
   }
 
   return résultats;
@@ -450,49 +464,80 @@ export async function détecterPII(
   rappelChargement?: (progression: number) => void,
   documentId?: string
 ): Promise<EntitePII[]> {
-  // Charger le modèle (instantané si déjà en cache)
+  // 1. Lancer la détection par regex en "arrière-plan" (micro-task)
+  // Sur 20MB, cela peut prendre 1-2 secondes, on veut que BERT commence en parallèle
+  const regexPromise = (async () => {
+    // Laisser BERT s'initialiser d'abord
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return détecterParRegex(texte);
+  })();
+
+  // 2. Charger le modèle (instantané si déjà en cache)
   const ner = await obtenirPipeline();
 
-  // Découper le texte en morceaux analysables
-  const morceaux = découperTexte(texte);
+  // 3. Découper le texte (stratégie optimisée pour 20MB+)
+  const morceaux = découperTexte(texte, 256, 40);
 
   const entitésBrutes: Omit<EntitePII, 'id'>[] = [];
+  const TAILLE_BATCH = 6;
 
-  // Analyser chaque morceau avec le modèle NER
-  for (let i = 0; i < morceaux.length; i++) {
-    const morceau = morceaux[i];
-
-    // Informer l'UI de l'avancement (ex: 2/5 morceaux traités)
+  // 4. Analyser chaque morceau avec le modèle NER
+  for (let i = 0; i < morceaux.length; i += TAILLE_BATCH) {
+    const batch = morceaux.slice(i, i + TAILLE_BATCH);
+    
     if (rappelChargement) {
       rappelChargement(Math.round((i / morceaux.length) * 100));
     }
 
-    // Lancer la détection NER sur ce morceau (retourne des tokens individuels)
-    const tokensBruts = await ner(morceau.texte) as NERTokenBrut[];
+    const résultatsBatch = await Promise.all(batch.map(async (morceau, indexInBatch) => {
+      // Heuristique de saut "Mega-Doc" : 
+      // On saute BERT si :
+      // - Pas de majuscule (PER improbable)
+      // - ET pas de mélange lettres/chiffres (ORG/LOC improbable)
+      // - OU si c'est du code/data répétitif (trop de symboles)
+      const aDesMajuscules = /[A-ZÀ-Ÿ]/.test(morceau.texte);
+      const aMelangeAlphaNum = /[a-zA-Zà-ÿ].*[0-9]|[0-9].*[a-zA-Zà-ÿ]/.test(morceau.texte);
+      
+      if (!aDesMajuscules && !aMelangeAlphaNum) {
+        return [];
+      }
 
-    // Agréger les sous-tokens en entités complètes (ex: "Ka" + "##mel" → "Kamel")
-    const entitésAgrégées = agrégerTokensNER(tokensBruts, morceau.texte);
+      // Détecter les blocs de données (ex: logs, hex, base64) qui font exploser BERT
+      const ratioAlphanum = (morceau.texte.match(/[a-zA-Z0-9]/g)?.length || 0) / morceau.texte.length;
+      if (ratioAlphanum < 0.5 && morceau.texte.length > 100) {
+        return []; // Trop de symboles = probablement pas du texte naturel
+      }
 
-    // Recalculer les positions dans le texte ORIGINAL en ajoutant l'offset du morceau
-    for (const entité of entitésAgrégées) {
-      entitésBrutes.push({
-        valeur: entité.mot,
-        debut: morceau.offsetDebut + entité.debut,
-        fin: morceau.offsetDebut + entité.fin,
-        type: entité.type, // "PER", "LOC", "ORG", "MISC"
-      });
+      if (indexInBatch === 0) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+
+      try {
+        const tokensBruts = await (ner as any)(morceau.texte) as NERTokenBrut[];
+        return agrégerTokensNER(tokensBruts, morceau.texte).map(entité => ({
+          valeur: entité.mot,
+          debut: morceau.offsetDebut + entité.debut,
+          fin: morceau.offsetDebut + entité.fin,
+          type: entité.type,
+        }));
+      } catch (err) {
+        return [];
+      }
+    }));
+
+    for (const entites of résultatsBatch) {
+      entitésBrutes.push(...entites);
     }
   }
 
-  // Détecter les emails, téléphones, numéros par regex sur le texte complet
-  const entitésRegex = détecterParRegex(texte);
+  // 5. Attendre la fin des regex
+  const entitésRegex = await regexPromise;
 
-  // Fusionner les deux sources, dédupliquer, puis attribuer les IDs
+  // 6. Fusionner et dédupliquer (étape finale sur le texte complet)
   const toutesLesEntités = [...entitésBrutes, ...entitésRegex];
   const sansDoublons = dédupliquer(toutesLesEntités);
   const avecIdentifiants = attribuerIdentifiants(sansDoublons, documentId);
 
-  // Informer l'UI que la détection est terminée
   if (rappelChargement) rappelChargement(100);
 
   return avecIdentifiants;

@@ -26,7 +26,8 @@ export const CourseQuiz: React.FC<CourseQuizProps> = ({ quiz, onFinish }) => {
 
   const currentQuestion = quiz[currentQuestionIndex];
   const totalQuestions = quiz.length;
-  const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
+  const answeredCount = Object.keys(answers).length;
+  const progress = (answeredCount / totalQuestions) * 100;
 
   const handleAnswerSelect = (value: string) => {
     setAnswers({ ...answers, [currentQuestionIndex]: value });
