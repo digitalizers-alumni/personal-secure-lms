@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
 from app.models.users import User
-from app.api.schemas.users import UserUpdate, UserUpdatePassword, User as UserSchema
+from app.api.schemas.users import UserUpdate, UserAdminUpdate, UserUpdatePassword, User as UserSchema
 from app.api.core.security import get_password_hash, get_current_user, get_admin_user
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ def get_user(
 @router.put("/{user_id}", response_model=UserSchema)
 def update_user(
     user_id: str,
-    user_in: UserUpdate,
+    user_in: UserAdminUpdate,
     db: Session = Depends(get_db),
     _: User = Depends(get_admin_user)
 ):

@@ -21,6 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { uploadDocumentToRAG, deleteDocument, API_URL } from "@/lib/api";
 import { DocumentValidatorService } from "@/services/DocumentValidatorService";
 import { DocumentMetadata } from "@/types/document";
+import { supprimerTableTokens } from "@/lib/pii/token-table";
 
 // --- Helpers ---
 
@@ -395,6 +396,13 @@ const Documents = () => {
                                     if (doc.backendDocId) {
                                       await deleteDocument(doc.backendDocId);
                                     }
+                                    
+                                    // Cleanup local PII tokens for this document
+                                    const idToCleanup = doc.backendDocId?.toString() || doc.id.toString();
+                                    await supprimerTableTokens(idToCleanup).catch(err => 
+                                      console.error(`Failed to cleanup tokens for doc ${idToCleanup}:`, err)
+                                    );
+
                                     setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
                                     toast({ title: t("delete_success") || "Document supprimé" });
                                   } catch (err) {

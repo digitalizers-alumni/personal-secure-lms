@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRole } from "@/contexts/RoleContext";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage, SUPPORTED_LOCALES } from "@/contexts/LanguageContext";
 import {
   LayoutDashboard,
   FileText,
@@ -14,6 +14,7 @@ import {
   LogOut,
   Users as UsersIcon,
   UserCircle,
+  Globe,
 } from "lucide-react";
 
 interface NavItem {
@@ -32,7 +33,7 @@ const navItems: NavItem[] = [
 
 const AppSidebar = () => {
   const { role, logout } = useRole();
-  const { t } = useLanguage();
+  const { t, locale, setLocale } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -81,69 +82,123 @@ const AppSidebar = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link key={item.path} to={item.path} className={navLinkClass(item.path)}>
-              {isActive && (
-                <motion.div
-                  layoutId="activeIndicator"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-sidebar-primary active-glow"
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
-              <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-sidebar-primary" : ""}`} />
-              <AnimatePresence>
-                {!collapsed && (
-                  <motion.span
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: "auto" }}
-                    exit={{ opacity: 0, width: 0 }}
-                    className="text-sm font-medium overflow-hidden whitespace-nowrap"
-                  >
-                    {t(item.labelKey)}
-                  </motion.span>
+      <nav className="flex-1 py-4 px-2 flex flex-col no-scrollbar overflow-hidden">
+        <div className="flex-1 space-y-1 overflow-y-auto no-scrollbar">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link key={item.path} to={item.path} className={navLinkClass(item.path)}>
+                {isActive && (
+                  <motion.div
+                    layoutId="activeIndicator"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-sidebar-primary active-glow"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
                 )}
-              </AnimatePresence>
-            </Link>
-          );
-        })}
+                <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-sidebar-primary" : ""}`} />
+                <AnimatePresence>
+                  {!collapsed && (
+                    <motion.span
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: "auto" }}
+                      exit={{ opacity: 0, width: 0 }}
+                      className="text-sm font-medium overflow-hidden whitespace-nowrap"
+                    >
+                      {t(item.labelKey)}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Link>
+            );
+          })}
 
-        {/* Admin section */}
-        {role === "admin" && (
-          <>
-            <div className="px-3 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Admin
-            </div>
-            <Link to="/users" className={navLinkClass("/users")}>
-              {location.pathname === "/users" && (
-                <motion.div
-                  layoutId="activeIndicatorAdmin"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-sidebar-primary active-glow"
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
-              <UsersIcon className={`w-5 h-5 flex-shrink-0 ${location.pathname === "/users" ? "text-sidebar-primary" : ""}`} />
-              <AnimatePresence>
-                {!collapsed && (
-                  <motion.span
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: "auto" }}
-                    exit={{ opacity: 0, width: 0 }}
-                    className="text-sm font-medium overflow-hidden whitespace-nowrap"
-                  >
-                    {t("nav_users")}
-                  </motion.span>
+          {/* Admin section */}
+          {role === "admin" && (
+            <>
+              <div className="px-3 pt-4 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Admin
+              </div>
+              <Link to="/users" className={navLinkClass("/users")}>
+                {location.pathname === "/users" && (
+                  <motion.div
+                    layoutId="activeIndicatorAdmin"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-sidebar-primary active-glow"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
                 )}
-              </AnimatePresence>
-            </Link>
-          </>
-        )}
+                <UsersIcon className={`w-5 h-5 flex-shrink-0 ${location.pathname === "/users" ? "text-sidebar-primary" : ""}`} />
+                <AnimatePresence>
+                  {!collapsed && (
+                    <motion.span
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: "auto" }}
+                      exit={{ opacity: 0, width: 0 }}
+                      className="text-sm font-medium overflow-hidden whitespace-nowrap"
+                    >
+                      {t("nav_users")}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Language Selector (Just over the line) */}
+        <div className="mt-auto px-2 pb-2 border-t border-sidebar-border/20 pt-4">
+          <AnimatePresence mode="wait">
+            {!collapsed ? (
+              <motion.div
+                key="expanded-lang"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="flex items-center justify-between bg-white/5 p-1 rounded-lg border border-sidebar-border/30 shadow-inner"
+              >
+                <div className="flex gap-1 overflow-x-auto no-scrollbar py-0.5 px-0.5">
+                  {SUPPORTED_LOCALES.map((l) => (
+                    <button
+                      key={l.code}
+                      onClick={() => setLocale(l.code)}
+                      className={`px-2 py-1 rounded-md text-[10px] font-black transition-all duration-300 ${
+                        locale === l.code
+                          ? "bg-sidebar-primary text-primary-foreground shadow-lg scale-105"
+                          : "text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
+                      }`}
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="ml-2 pl-2 border-l border-sidebar-border/30 flex-shrink-0 mr-1">
+                  <Globe className="w-3.5 h-3.5 text-sidebar-primary/60 animate-pulse-slow" />
+                </div>
+              </motion.div>
+            ) : (
+              <motion.button
+                key="collapsed-lang"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                onClick={() => {
+                  const currentIndex = SUPPORTED_LOCALES.findIndex(l => l.code === locale);
+                  const nextIndex = (currentIndex + 1) % SUPPORTED_LOCALES.length;
+                  setLocale(SUPPORTED_LOCALES[nextIndex].code);
+                }}
+                className="w-full flex flex-col items-center justify-center py-2.5 rounded-xl bg-white/5 border border-sidebar-border/30 hover:bg-white/10 transition-all group shadow-sm active:scale-95"
+              >
+                <span className="text-xs font-black text-sidebar-primary group-hover:scale-110 transition-transform">
+                  {locale.toUpperCase()}
+                </span>
+                <Globe className="w-3.5 h-3.5 text-sidebar-foreground/30 mt-1 group-hover:text-sidebar-primary/50 transition-colors" />
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
       </nav>
 
       {/* Role Badge, Profile, Logout & Collapse */}
-      <div className="px-3 pb-4 space-y-3 border-t border-sidebar-border pt-3">
+      <div className="px-3 pb-4 space-y-3 border-t border-sidebar-border pt-3 bg-sidebar/50 backdrop-blur-md">
         <AnimatePresence>
           {!collapsed && (
             <motion.div
@@ -152,8 +207,8 @@ const AppSidebar = () => {
               exit={{ opacity: 0 }}
               className="flex items-center gap-2 px-2"
             >
-              <Shield className="w-4 h-4 text-sidebar-primary" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground">
+              <Shield className="w-4 h-4 text-sidebar-primary shadow-sm" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/80">
                 {role}
               </span>
             </motion.div>
@@ -207,7 +262,7 @@ const AppSidebar = () => {
         {/* Collapse */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center py-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+          className="w-full flex items-center justify-center py-2.5 rounded-xl text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all border border-transparent hover:border-sidebar-border/30"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>

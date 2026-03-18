@@ -23,17 +23,21 @@ def seed():
             print(f"Creating seed user: {admin_email}")
             new_user = User(
                 email=admin_email,
-                password_hash=get_password_hash("admin123"),
+                password_hash=get_password_hash("admin1234"),
                 first_name="Admin",
                 last_name="Portal",
                 user_role=UserRole.ADMIN,
                 is_active=True
             )
             db.add(new_user)
-            db.commit()
-            print("Seed complete.")
         else:
-            print("Admin user already exists.")
+            print(f"Updating existing seed user: {admin_email}")
+            db_user.password_hash = get_password_hash("admin1234")
+            db_user.user_role = UserRole.ADMIN
+            db_user.is_active = True
+        
+        db.commit()
+        print("Seed complete.")
             
     finally:
         db.close()

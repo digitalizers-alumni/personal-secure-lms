@@ -4,7 +4,7 @@ from typing import List, Optional, Annotated
 
 class QuizQuestion(BaseModel):
     question: str
-    options: Annotated[List[str], Field(min_length=4, max_length=4)]
+    options: Annotated[List[str], Field(min_length=2, max_length=4)]
     correct_answer: str
 
 
@@ -23,4 +23,5 @@ class CourseGenerationRequest(BaseModel):
     passing_score: int = 70
     num_questions: int = 3
     selected_doc_ids: Optional[List[int]] = None
+    language: Optional[str] = "en"
     additional_instructions: Optional[str] = None

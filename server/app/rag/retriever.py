@@ -8,7 +8,11 @@ from app.rag.indexer import COLLECTION_NAME
 
 logger = logging.getLogger(__name__)
 
-client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+if settings.QDRANT_HOST == ":memory:":
+    client = QdrantClient(":memory:")
+    logger.info("Using in-memory Qdrant for search")
+else:
+    client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
 
 
 def search(

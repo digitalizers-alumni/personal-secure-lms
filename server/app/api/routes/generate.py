@@ -19,6 +19,7 @@ class GenerateRequest(BaseModel):
     prompt: str = Field(..., description="The query/instruction from the user")
     user_id: Optional[str] = None
     selected_doc_ids: Optional[List[int]] = None
+    language: Optional[str] = "fr"
 
 
 class GenerateResponse(BaseModel):
@@ -45,7 +46,8 @@ async def generate(
         result = await run_rag_pipeline(
             prompt=request.prompt,
             user_id=user_id,
-            selected_doc_ids=request.selected_doc_ids
+            selected_doc_ids=request.selected_doc_ids,
+            language=request.language
         )
         return GenerateResponse(
             answer=result["answer"],

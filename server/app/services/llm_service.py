@@ -25,23 +25,24 @@ class LLMService:
             {"role": "system", "content": system_prompt or settings.ATLAS_SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt}
         ]
+        logger.info(f"LLM Request - System Prompt: {(system_prompt or settings.ATLAS_SYSTEM_PROMPT)[:100]}...")
+        logger.info(f"LLM Request - User Prompt: {user_prompt[:100]}...")
         
         data = {
             "model": settings.INFOMANIAK_MODEL,
             "messages": messages,
             "temperature": 0.7,
-            "max_tokens": 1000 # Increased for general responses
+            "max_tokens": 2000 # Increased for general responses
         }
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             try:
-                logger.info(f"Sending request to Infomaniak LLM: {self.base_url}")
                 response = await client.post(self.base_url, headers=self.headers, json=data)
-                logger.info(f"Infomaniak status code: {response.status_code}")
                 response.raise_for_status()
-                
                 result = response.json()
-                return result['choices'][0]['message']['content'].strip()
+                content = result['choices'][0]['message']['content'].strip()
+                logger.info(f"LLM Response snippet: {content[:200]}...")
+                return content
                 
             except httpx.HTTPStatusError as e:
                 logger.error(f"LLM API Error: {e.response.status_code} - {e.response.text}")
@@ -77,10 +78,10 @@ class LLMService:
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.1, # Low temperature for strict adherence to structure
-            "max_tokens": 2000, # Large buffer for course + quiz
+            "max_tokens": 4096, # Large buffer for course + quiz
         }
 
-        async with httpx.AsyncClient(timeout=90.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             try:
                 response = await client.post(self.base_url, headers=self.headers, json=data)
                 response.raise_for_status()
@@ -112,9 +113,13 @@ class LLMService:
                     logger.error("JSON string snippet: %s", json_string[:500])
                     try:
                         # Common LLM mistake 1: Escaping single quotes as \' (invalid in JSON)
-                        # Common LLM mistake 2: Literal newlines in strings
-                        # Common LLM mistake 3: Mis-escaped backslashes
+                        # Common LLM mistake 2: Escaping underscores as \_ (invalid in JSON)
+                        # Common LLM mistake 3: Escaping other markdown-sensitive chars like \# or \*
                         sanitized_string = json_string.replace("\\'", "'")
+                        sanitized_string = sanitized_string.replace("\\_", "_")
+                        sanitized_string = sanitized_string.replace("\\#", "#")
+                        sanitized_string = sanitized_string.replace("\\*", "*")
+                        
                         # If strict is False, some control characters are allowed, but not newlines in strings.
                         return json.loads(sanitized_string, strict=False)
                     except Exception as final_e:

@@ -113,7 +113,11 @@ async def upload_document(
         file_path=file_path,
         mime_type=mime_type,
         hash_sha256=hash_sha256,
-        status="pending"
+        status="pending",
+        metadata_json={
+            "size_bytes": file_size,
+            "mime_type": mime_type,
+        }
     )
     db.add(doc)
     try:
