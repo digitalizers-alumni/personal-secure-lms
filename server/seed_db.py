@@ -1,46 +1,49 @@
-import sys
+import sqlite3
+import uuid
 import os
-
-# Add the project root to sys.path
-sys.path.append(os.path.join(os.path.dirname(__file__), "app"))
-sys.path.append(os.getcwd())
-
-from app.db.database import SessionLocal, engine, Base
-from app.models.users import User, UserRole
-from app.api.core.security import get_password_hash
-
-def seed():
-    # Create tables
-    Base.metadata.create_all(bind=engine)
+import subprocess
+from passlib.context import CryptContext
     
-    db = SessionLocal()
-    try:
-        # Check if admin exists
-        admin_email = "admin@lumina-swiss.ch"
-        db_user = db.query(User).filter(User.email == admin_email).first()
-        
-        if not db_user:
-            print(f"Creating seed user: {admin_email}")
-            new_user = User(
-                email=admin_email,
-                password_hash=get_password_hash("admin1234"),
-                first_name="Admin",
-                last_name="Portal",
-                user_role=UserRole.ADMIN,
-                is_active=True
-            )
-            db.add(new_user)
-        else:
-            print(f"Updating existing seed user: {admin_email}")
-            db_user.password_hash = get_password_hash("admin1234")
-            db_user.user_role = UserRole.ADMIN
-            db_user.is_active = True
-        
-        db.commit()
-        print("Seed complete.")
-            
-    finally:
-        db.close()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+password_hash = pwd_context.hash("admin1234")
 
-if __name__ == "__main__":
-    seed()
+db_path = "./data/rag_lms.db"
+os.makedirs("./data", exist_ok=True)
+
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
+
+# Create users table if not exists
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        first_name TEXT,
+        last_name TEXT,
+        job_function TEXT,
+        user_role TEXT DEFAULT 'USER',
+        is_active INTEGER DEFAULT 1,
+        is_deleted INTEGER DEFAULT 0,
+        last_activity DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME
+    )
+""")
+
+# Check if admin already exists
+cursor.execute("SELECT id FROM users WHERE email = 'admin@lumina-swiss.ch'")
+existing = cursor.fetchone()
+
+if existing:
+    print("Admin account already exists — skipping creation")
+else:
+    admin_id = str(uuid.uuid4())
+    cursor.execute("""
+        INSERT INTO users (id, email, password_hash, first_name, last_name, user_role, is_active, is_deleted)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (admin_id, "admin@lumina-swiss.ch", password_hash, "Admin", "Lumina", "ADMIN", 1, 0))
+    conn.commit()
+    print(f"Admin account created: admin@lumina-swiss.ch / admin1234")
+
+conn.close()

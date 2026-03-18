@@ -58,9 +58,6 @@ services:
       - HUGGINGFACE_HOME=/app/data/models
       - MODEL_CACHE_DIR=/app/data/models
       - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/rag_lms.db}
-      # - HUGGINGFACE_HUB_OFFLINE=1         # if bge-m3 is already downloaded on server side
-      # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
-      # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side
     volumes:
       - ./app:/app/app
       - ./data/documents:/app/data/documents
@@ -92,9 +89,6 @@ services:
       - QDRANT_HOST=qdrant
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      # - HUGGINGFACE_HUB_OFFLINE=1         # if bge-m3 is already downloaded on server side
-      # - TRANSFORMERS_OFFLINE=1            # if bge-m3 is already downloaded on server side
-      # - HF_DATASETS_OFFLINE=1             # if bge-m3 is already downloaded on server side
     volumes:
       - ./app:/app/app
       - ./data/documents:/app/data/documents
@@ -107,3 +101,19 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+volumes:
+  caddy_data:
+  caddy_config:
