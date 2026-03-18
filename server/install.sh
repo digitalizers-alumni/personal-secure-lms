@@ -24,11 +24,11 @@ fi
 
 if [[ $MAJOR -lt 3 ]] || [[ $MAJOR -eq 3 && $MINOR -lt 11 ]]; then
     echo -e "${RED} Python 3.11+ required (found $PYTHON_VERSION)${NC}"
-    read -p "Do you want to install python 3.12 ? (y/n) " answer
+    read -p "Do you want to install python 3.11 ? (y/n) " answer
 
     if [[ "$answer" == "y" ]]; then
-        sudo apt update && sudo apt install -y python3.12
-        echo -e "${GREEN} Python 3.12 installed successfully${NC}"
+        sudo apt update && sudo apt install -y python3.11 python3.11-venv
+        echo -e "${GREEN} Python 3.11 installed successfully${NC}"
     else
         echo "Installation cancelled"
         exit 1
@@ -112,10 +112,10 @@ if [ "$SKIP_ENV" != "true" ]; then
     echo ""
 
     read -rp "  INFOMANIAK_API_KEY      : " INFOMANIAK_API_KEY
-    $INFOMANIAK_API_KEY=${INFOMANIAK_API_KEY:-token-key-to-add-later}
+    INFOMANIAK_API_KEY=${INFOMANIAK_API_KEY:-token-key-to-add-later}
 
     read -rp "  INFOMANIAK_PRODUCT_ID   : " INFOMANIAK_PRODUCT_ID
-    $INFOMANIAK_PRODUCT_ID=${INFOMANIAK_PRODUCT_ID:-product-id-to-add-later}
+    INFOMANIAK_PRODUCT_ID=${INFOMANIAK_PRODUCT_ID:-product-id-to-add-later}
 
     read -rp "  INFOMANIAK_MODEL        [mistral3]: " INFOMANIAK_MODEL
     INFOMANIAK_MODEL=${INFOMANIAK_MODEL:-mistral3}
