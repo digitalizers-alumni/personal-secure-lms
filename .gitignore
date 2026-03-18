@@ -98,7 +98,7 @@ copilot_settings.json
 
 # Environment & secrets
 .env
-.env.*
+.env
 *.pem
 *.key
 *.crt
