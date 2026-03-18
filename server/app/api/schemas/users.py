@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 from datetime import datetime
 from enum import Enum
@@ -14,8 +14,31 @@ class UserBase(BaseModel):
     last_name: Optional[str] = None
     job_function: Optional[str] = None
 
-class UserCreate(UserBase):
+# Public self-registration — no role field, extra fields forbidden
+class SelfRegisterRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
     password: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    job_function: Optional[str] = None
+
+# Legacy alias — no longer used internally, kept for reference only
+# class UserCreate(UserBase):
+#     password: str
+
+# Admin-only user creation — role-aware
+class UserAdminCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    password: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    job_function: Optional[str] = None
+    user_role: UserRole = UserRole.USER
+    is_active: bool = True
 
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -32,13 +55,13 @@ class UserUpdatePassword(BaseModel):
 
 class User(UserBase):
     id: str
+    user_role: UserRole
     is_active: bool
     is_deleted: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- AUTH ---
 class UserLogin(BaseModel):

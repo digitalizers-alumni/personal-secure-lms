@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
-from app.models.users import User
-from app.api.schemas.users import UserUpdate, UserAdminUpdate, UserUpdatePassword, User as UserSchema
+from app.models.users import User, UserRole
+from app.api.schemas.users import UserUpdate, UserAdminUpdate, UserAdminCreate, UserUpdatePassword, User as UserSchema
 from app.api.core.security import get_password_hash, get_current_user, get_admin_user
 
 logger = logging.getLogger(__name__)
@@ -59,6 +59,44 @@ def list_users(
 ):
     """List all users — admin only"""
     return db.query(User).filter(User.is_deleted == False).all()
+
+
+@router.post("", response_model=UserSchema, status_code=201)
+def create_user(
+    user_in: UserAdminCreate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """
+    Admin-only user creation.
+    Admins cannot assign a role higher than their own.
+    """
+    # Prevent privilege escalation: admin cannot create another admin
+    # unless you explicitly want to allow it — adjust this guard as needed.
+    if user_in.user_role == UserRole.ADMIN and admin.user_role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to assign this role",
+        )
+
+    existing = db.query(User).filter(User.email == user_in.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    db_user = User(
+        email=user_in.email,
+        password_hash=get_password_hash(user_in.password),
+        first_name=user_in.first_name,
+        last_name=user_in.last_name,
+        job_function=user_in.job_function,
+        user_role=user_in.user_role,
+        is_active=user_in.is_active,
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    logger.info("Admin %s created user %s with role %s", admin.email, db_user.email, db_user.user_role)
+    return db_user
 
 
 @router.get("/{user_id}", response_model=UserSchema)

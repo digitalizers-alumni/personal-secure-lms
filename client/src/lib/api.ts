@@ -6,7 +6,7 @@ export interface User {
   first_name: string;
   last_name: string;
   job_function?: string;
-  user_role: string;
+  user_role: "USER" | "ADMIN" | "INVITE";
   is_active: boolean;
   is_deleted: boolean;
 }
@@ -208,13 +208,30 @@ export async function deactivateUser(userId: number): Promise<void> {
 export async function register(payload: {
   email: string;
   password: string;
-  first_name: string;
-  last_name: string;
-  user_role?: string;
+  first_name?: string;
+  last_name?: string;
+  job_function?: string;
 }): Promise<void> {
   await apiFetch("/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+}
+
+export async function createUser(payload: {
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+  job_function?: string;
+  user_role?: string;
+  is_active?: boolean;
+}): Promise<User> {
+  const response = await apiFetch("/api/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return response.json();
 }

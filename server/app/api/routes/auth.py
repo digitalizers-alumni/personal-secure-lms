@@ -2,12 +2,10 @@ import jwt
 import datetime
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from app.api.core.security import create_access_token
-
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.users import User
-from app.api.schemas.users import UserLogin, Token, UserCreate, User as UserSchema
+from app.api.schemas.users import UserLogin, Token, SelfRegisterRequest, User as UserSchema
 from app.api.core.security import create_access_token, verify_password, get_password_hash
 
 router = APIRouter()
@@ -47,21 +45,23 @@ async def login_form(
     return perform_login(form_data.username, form_data.password, db)
 
 @router.post("/register", response_model=UserSchema, status_code=201)
-async def register(user_in: UserCreate, db: Session = Depends(get_db)):
+async def register(user_in: SelfRegisterRequest, db: Session = Depends(get_db)):
     """
-    Public registration endpoint.
+    Public self-registration endpoint.
+    Role is always USER — no role escalation possible.
+    Extra fields are forbidden by the schema.
     """
     existing_user = db.query(User).filter(User.email == user_in.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
+
     db_user = User(
         email=user_in.email,
         password_hash=get_password_hash(user_in.password),
         first_name=user_in.first_name,
         last_name=user_in.last_name,
         job_function=user_in.job_function,
-        user_role="USER"
+        user_role="USER",
     )
     db.add(db_user)
     db.commit()
