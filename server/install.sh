@@ -7,19 +7,34 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo "Lumina backend setup"
+echo "Lumina backend setup, you need superuser rights to install python and docker"
 echo ""
 
-# [1/5] Check Python version
 echo "[1/5] Checking Python version"
-PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
-MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
+
+if command -v python3 &>/dev/null; then
+    PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    MAJOR=$(echo "$PYTHON_VERSION" | cut -d. -f1)
+    MINOR=$(echo "$PYTHON_VERSION" | cut -d. -f2)
+else
+    MAJOR=0
+    MINOR=0
+    PYTHON_VERSION="Python no installed"
+fi
 
 if [[ $MAJOR -lt 3 ]] || [[ $MAJOR -eq 3 && $MINOR -lt 11 ]]; then
     echo -e "${RED} Python 3.11+ required (found $PYTHON_VERSION)${NC}"
-    exit 1
+    read -p "Do you want to install python 3.12 ? (y/n) " answer
+
+    if [[ "$answer" == "y" ]]; then
+        sudo apt update && sudo apt install -y python3.12
+        echo -e "${GREEN} Python 3.12 installed successfully${NC}"
+    else
+        echo "Installation cancelled"
+        exit 1
+    fi
 fi
+
 echo -e "${GREEN} Python $PYTHON_VERSION OK ${NC}"
 echo ""
 
