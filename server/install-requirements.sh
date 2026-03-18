@@ -36,8 +36,8 @@ echo "venv activated"
 echo ""
 
 # [3/5] Upgrade pip
-echo "[3/5] Upgrading pip, setuptools, wheel"
-pip install --upgrade pip setuptools wheel --quiet
+echo "[3/5] Upgrading pip, setuptools, wheel, passlib, bcrypt"
+pip install --upgrade pip setuptools wheel "bcrypt==4.0.1" passlib --quiet
 echo -e "${GREEN} pip upgraded ${NC}"
 echo ""
 
@@ -97,19 +97,13 @@ if [ "$SKIP_ENV" != "true" ]; then
     echo ""
 
     read -rp "  INFOMANIAK_API_KEY      : " INFOMANIAK_API_KEY
-    while [ -z "$INFOMANIAK_API_KEY" ]; do
-        echo -e "${RED}  INFOMANIAK_API_KEY is required${NC}"
-        read -rp "  INFOMANIAK_API_KEY      : " INFOMANIAK_API_KEY
-    done
+    $INFOMANIAK_API_KEY=${INFOMANIAK_API_KEY:-token-key-to-add-later}
 
     read -rp "  INFOMANIAK_PRODUCT_ID   : " INFOMANIAK_PRODUCT_ID
-    while [ -z "$INFOMANIAK_PRODUCT_ID" ]; do
-        echo -e "${RED}  INFOMANIAK_PRODUCT_ID is required${NC}"
-        read -rp "  INFOMANIAK_PRODUCT_ID   : " INFOMANIAK_PRODUCT_ID
-    done
+    $INFOMANIAK_PRODUCT_ID=${INFOMANIAK_PRODUCT_ID:-product-id-to-add-later}
 
-    read -rp "  INFOMANIAK_MODEL        [mistral-7b]: " INFOMANIAK_MODEL
-    INFOMANIAK_MODEL=${INFOMANIAK_MODEL:-mistral-7b}
+    read -rp "  INFOMANIAK_MODEL        [mistral3]: " INFOMANIAK_MODEL
+    INFOMANIAK_MODEL=${INFOMANIAK_MODEL:-mistral3}
 
     read -rp "  CORS_ORIGINS            [http://localhost:8080]: " CORS_ORIGINS
     CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8080}
@@ -149,66 +143,9 @@ fi
 echo ""
 echo "Creating SQLite database with default admin account"
 
-mkdir -p data
+mkdir data
 
-python3 - << 'PYTHON_SCRIPT'
-import sqlite3
-import uuid
-import os
-
-try:
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    password_hash = pwd_context.hash("admin1234")
-except ImportError:
-    # Fallback si passlib pas installé dans le venv
-    import subprocess
-    subprocess.check_call(["pip", "install", "passlib[bcrypt]", "--quiet"])
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    password_hash = pwd_context.hash("admin1234")
-
-db_path = "./data/rag_lms.db"
-os.makedirs("./data", exist_ok=True)
-
-conn = sqlite3.connect(db_path)
-cursor = conn.cursor()
-
-# Create users table if not exists
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        first_name TEXT,
-        last_name TEXT,
-        job_function TEXT,
-        user_role TEXT DEFAULT 'USER',
-        is_active INTEGER DEFAULT 1,
-        is_deleted INTEGER DEFAULT 0,
-        last_activity DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME
-    )
-""")
-
-# Check if admin already exists
-cursor.execute("SELECT id FROM users WHERE email = 'admin@lumina-swiss.ch'")
-existing = cursor.fetchone()
-
-if existing:
-    print("Admin account already exists — skipping creation")
-else:
-    admin_id = str(uuid.uuid4())
-    cursor.execute("""
-        INSERT INTO users (id, email, password_hash, first_name, last_name, user_role, is_active, is_deleted)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (admin_id, "admin@lumina-swiss.ch", password_hash, "Admin", "Lumina", "ADMIN", 1, 0))
-    conn.commit()
-    print(f"Admin account created: admin@lumina-swiss.ch / admin1234")
-
-conn.close()
-PYTHON_SCRIPT
+python3 seed_db.py
 
 echo -e "${GREEN}Database ready default lumina account is :${NC}"
 echo "Admin user : admin@lumina-swiss.ch"
