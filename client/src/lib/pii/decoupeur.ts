@@ -34,46 +34,62 @@ export interface Morceau {
  * @param chevauchement - nombre de mots partagés entre deux morceaux consécutifs (défaut : 50)
  * @returns            - tableau de morceaux avec leur position dans le texte original
  */
+/**
+ * Découpe un texte en morceaux de taille maximale de manière performante.
+ * Pour les documents lourds (1.5MB+), on évite de tokeniser chaque mot individuellement.
+ */
 export function découperTexte(
   texte: string,
-  tailleMax = 300,
-  chevauchement = 50
+  tailleMaxMots = 450,
+  chevauchementMots = 50
 ): Morceau[] {
-  // Trouver la position exacte de chaque mot dans le texte original
-  // On utilise une regex pour trouver les séquences de caractères non-blancs
-  const regexMots = /\S+/g;
-  const mots: { contenu: string; debut: number; fin: number }[] = [];
+  if (!texte) return [];
 
-  let match;
-  while ((match = regexMots.exec(texte)) !== null) {
-    mots.push({
-      contenu: match[0],
-      debut: match.index,
-      fin: match.index + match[0].length,
-    });
-  }
-
-  // Si le texte est vide ou trop court, retourner un seul morceau
-  if (mots.length === 0) return [];
-  if (mots.length <= tailleMax) {
-    return [{ texte, offsetDebut: 0 }];
-  }
+  // Estimation rapide du nombre de caractères par mot (~6-7 en français/allemand avec espaces)
+  const CHARS_PAR_MOT = 7;
+  const tailleMaxChars = tailleMaxMots * CHARS_PAR_MOT;
+  const chevauchementChars = chevauchementMots * CHARS_PAR_MOT;
 
   const morceaux: Morceau[] = [];
-  const pas = tailleMax - chevauchement; // nombre de mots avancés à chaque itération
+  let index = 0;
 
-  for (let i = 0; i < mots.length; i += pas) {
-    const motsDuMorceau = mots.slice(i, i + tailleMax);
-    if (motsDuMorceau.length === 0) break;
+  // Si le texte est court, on retourne un seul morceau
+  if (texte.length < tailleMaxChars + 1000) {
+    // On vérifie quand même le nombre de mots réel pour les petits textes
+    const motsCount = (texte.match(/\S+/g) || []).length;
+    if (motsCount <= tailleMaxMots) {
+      return [{ texte, offsetDebut: 0 }];
+    }
+  }
 
-    const offsetDebut = motsDuMorceau[0].debut;
-    const offsetFin = motsDuMorceau[motsDuMorceau.length - 1].fin;
+  // Boucle de découpage par fenêtres de caractères ajustées aux espaces
+  while (index < texte.length) {
+    let debut = index;
+    let fin = Math.min(debut + tailleMaxChars, texte.length);
 
-    // Extraire le texte exact du morceau depuis le texte original
-    // (préserve les espaces et la ponctuation d'origine)
-    const texteMorceau = texte.slice(offsetDebut, offsetFin);
+    // Ajuster la fin au prochain espace pour ne pas couper un mot
+    if (fin < texte.length) {
+      const prochainEspace = texte.indexOf(' ', fin);
+      if (prochainEspace !== -1 && prochainEspace < fin + 50) {
+        fin = prochainEspace;
+      }
+    }
 
-    morceaux.push({ texte: texteMorceau, offsetDebut });
+    const texteMorceau = texte.slice(debut, fin);
+    morceaux.push({ texte: texteMorceau, offsetDebut: debut });
+
+    // Avancer l'index
+    if (fin === texte.length) break;
+    
+    // Pour le prochain morceau, on recule pour le chevauchement
+    // On cherche un espace proche de l'objectif pour la coupure
+    index = Math.max(0, fin - chevauchementChars);
+    const espaceChevauchement = texte.indexOf(' ', index);
+    if (espaceChevauchement !== -1 && espaceChevauchement < fin) {
+        index = espaceChevauchement + 1;
+    } else {
+        index = fin; // Sécurité si aucun espace trouvé
+    }
   }
 
   return morceaux;

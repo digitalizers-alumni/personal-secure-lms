@@ -329,8 +329,8 @@ const Documents = () => {
                         <td className="py-3 px-4 text-sm text-muted-foreground">{doc.size}</td>
                         <td className="py-3 px-4">
                           {doc.status === "scanning" && (
-                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Loader2 className="w-3 h-3 animate-spin" /> {t("docs_scanning_label")}
+                            <span className="flex items-center gap-1.5 text-xs text-muted-foreground whitespace-nowrap">
+                              <Loader2 className="w-3 h-3 animate-spin" /> {doc.backendError || t("docs_scanning_label")}
                             </span>
                           )}
                           {doc.status === "clean" && (
