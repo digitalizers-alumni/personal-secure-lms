@@ -46,47 +46,7 @@ Launch the container:
 docker-compose up --build -d
 ```
 
-The service will be available at **[http://localhost:8000](http://localhost:8000)**.
-
----
-
-## 🧪 Testing the API
-
-Once the server is running (via Docker or Local), you can test the LLM module in two ways:
-
-### A. Via Terminal (cURL)
-Open a **new terminal** and run the following command:
-
-```bash
-curl -X POST "http://localhost:8000/api/generate" \
-     -H "Content-Type: application/json" \
-     -d '{"prompt": "Hello Atlas, introduce yourself in 5 words."}'
-```
-
-### B. Via Interactive Interface (Swagger)
-FastAPI automatically generates a visual testing interface:
-👉 Access at: [http://localhost:8000/docs](http://localhost:8000/docs)
-1. Click on `POST /api/generate`
-2. Click on **"Try it out"**
-3. Modify the test JSON and click **"Execute"**
-
----
-
-## 🛠️ Local Development (Without Docker)
-
-If you prefer working without Docker:
-
-1. **Prepare the environment**:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # Windows: .\venv\Scripts\Activate.ps1
-   pip install -r requirements.txt
-   ```
-
-2. **Start the server**:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+The service will be available at **[http://localhost:8000]**.
 
 ---
 

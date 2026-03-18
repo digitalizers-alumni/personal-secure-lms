@@ -280,7 +280,7 @@ const translations: Record<Locale, Record<string, string>> = {
     pii_no_entities: "Aucune donnée sensible détectée ✓",
     pii_hide_originals: "Masquer les originaux",
     pii_view_originals: "Voir les originaux",
-    pii_send_anonymized: "Envoyer anonymisé",
+    pii_send_anonymized: "Envoi anonymisé",
     pii_send_anyway: "Envoyer",
     // AI Generation
     ai_generation_error: "Erreur de génération",

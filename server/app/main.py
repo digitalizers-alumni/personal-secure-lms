@@ -71,6 +71,14 @@ app.include_router(
     dependencies=[Depends(get_current_user)]
 )
 
+# Direct LLM route (Testing/Debug): /api/llm
+app.include_router(
+    llm_router,
+    prefix="/api/llm",
+    tags=["LLM"],
+    dependencies=[Depends(get_current_user)]
+)
+
 app.include_router(
     users_router,
     prefix="/api/users",

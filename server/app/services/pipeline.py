@@ -6,17 +6,16 @@ from app.services.llm_service import llm_service
 logger = logging.getLogger(__name__)
 
 
-KEYWORD_EXTRACTION_PROMPT = """Extract the key search terms from this question.
-Return ONLY a comma-separated list of keywords, nothing else.
+KEYWORD_SYSTEM_PROMPT = "Tu es un extracteur de mots-clés. Analyse la question de l'utilisateur et retourne UNIQUEMENT une liste de mots-clés séparés par des virgules, sans aucune phrase d'introduction ni de conclusion."
 
+KEYWORD_EXTRACTION_PROMPT = """Extract the key search terms from this question.
 Question: {prompt}
 Keywords:"""
 
 
-AUGMENTED_PROMPT_TEMPLATE = """Answer the following question using the context provided.
-If the context does not contain relevant information, answer based on your general knowledge.
+AUGMENTED_SYSTEM_PROMPT = "Tu es Atlas, un assistant expert. Utilise le contexte fourni pour répondre de manière précise et détaillée à l'utilisateur. Si le contexte ne suffit pas, utilise tes connaissances générales."
 
-Context:
+AUGMENTED_PROMPT_TEMPLATE = """Context:
 {context}
 
 Question: {prompt}
@@ -32,14 +31,17 @@ async def run_rag_pipeline(
     """
     Full RAG pipeline:
     1. Extract keywords from prompt via LLM
-    2. Search Qdrant with BGE-M3 embeddings
+    2. Search Qdrant with embeddings
     3. Send augmented prompt to LLM with retrieved context
     """
 
     # Step 1 — keyword extraction
     logger.info("Extracting keywords from prompt")
     keyword_prompt = KEYWORD_EXTRACTION_PROMPT.format(prompt=prompt)
-    keywords_raw = await llm_service.generate_response(keyword_prompt)
+    keywords_raw = await llm_service.generate_response(
+        user_prompt=keyword_prompt, 
+        system_prompt=KEYWORD_SYSTEM_PROMPT
+    )
     keywords = [k.strip() for k in keywords_raw.split(",") if k.strip()]
     logger.info("Extracted keywords: %s", keywords)
 
@@ -64,7 +66,10 @@ async def run_rag_pipeline(
     )
 
     # Step 4 — final LLM call
-    answer = await llm_service.generate_response(augmented_prompt)
+    answer = await llm_service.generate_response(
+        user_prompt=augmented_prompt,
+        system_prompt=AUGMENTED_SYSTEM_PROMPT
+    )
     logger.info("Pipeline complete")
 
     return {

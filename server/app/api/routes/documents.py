@@ -2,7 +2,7 @@ import os # Re-adding os import
 import logging
 from app.api.core.security import get_current_user
 from app.models.users import User
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Tuple
@@ -125,7 +125,7 @@ async def upload_document(
     ingest_document.delay(doc.id, doc.file_path, doc.user_id)
     return DocumentUploadResponse(doc_id=doc.id, filename=doc.filename, status=doc.status)
 
-@router.get("/", response_model=List[DocumentStatusResponse])
+@router.get("", response_model=List[DocumentStatusResponse])
 async def list_documents(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

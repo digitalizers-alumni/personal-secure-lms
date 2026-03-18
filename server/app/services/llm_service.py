@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class LLMService:
     def __init__(self):
         self.base_url = (
-            f"https://api.infomaniak.com/1/ai/{settings.INFOMANIAK_PRODUCT_ID}/openai/chat/completions"
+            f"https://api.infomaniak.com/2/ai/{settings.INFOMANIAK_PRODUCT_ID}/openai/v1/chat/completions"
         )
         self.headers = {
             "Authorization": f"Bearer {settings.INFOMANIAK_API_KEY}",
@@ -33,16 +33,18 @@ class LLMService:
             "max_tokens": 1000 # Increased for general responses
         }
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             try:
+                logger.info(f"Sending request to Infomaniak LLM: {self.base_url}")
                 response = await client.post(self.base_url, headers=self.headers, json=data)
+                logger.info(f"Infomaniak status code: {response.status_code}")
                 response.raise_for_status()
                 
                 result = response.json()
-                logger.info(f"LLM response received (generate_response): {result}") # Added logging
                 return result['choices'][0]['message']['content'].strip()
                 
             except httpx.HTTPStatusError as e:
+                logger.error(f"LLM API Error: {e.response.status_code} - {e.response.text}")
                 raise HTTPException(
                     status_code=502,
                     detail=f"LLM API error ({e.response.status_code}): {e.response.text}"
@@ -87,18 +89,27 @@ class LLMService:
                 logger.info(f"LLM response received (generate_json_response): {result}") # Added logging
                 llm_content = result['choices'][0]['message']['content'].strip()
                 
-                # Robust extraction of JSON from response (handling markdown, preamble, etc.)
+                # Remove markdown code blocks
+                llm_content = re.sub(r'```json\s*', '', llm_content)
+                llm_content = re.sub(r'```\s*', '', llm_content)
+                llm_content = llm_content.strip()
+
+                # Fix invalid JSON escaping
+                llm_content = llm_content.replace("\\'", "'")  # ← apostrophes invalides
+
                 json_match = re.search(r'(\{.*\})', llm_content, re.DOTALL)
                 if json_match:
                     json_string = json_match.group(1)
                 else:
-                    json_string = llm_content # Fallback
+                    json_string = llm_content
 
                 try:
                     # Attempt to parse as-is
                     return json.loads(json_string)
                 except json.JSONDecodeError as e:
                     logger.warning(f"Initial JSON parse failed: {e}. Attempting sanitization...")
+                    logger.error("JSON parse error: %s", e)
+                    logger.error("JSON string snippet: %s", json_string[:500])
                     try:
                         # Common LLM mistake 1: Escaping single quotes as \' (invalid in JSON)
                         # Common LLM mistake 2: Literal newlines in strings

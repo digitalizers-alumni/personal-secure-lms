@@ -19,7 +19,6 @@ def search(
 ) -> List[dict]:
     """
     Embeds the query and retrieves the top_k most relevant chunks from Qdrant.
-    Optionally filters by user_id and/or a list of specific doc_ids.
     """
     query_vector = embedder.embed([query])[0]
 
@@ -34,6 +33,7 @@ def search(
     if must_conditions:
         search_filter = Filter(must=must_conditions)
 
+    # Utilisation de query_points (standard Qdrant 1.10+)
     results = client.query_points(
         collection_name=COLLECTION_NAME,
         query=query_vector,
@@ -51,5 +51,5 @@ def search(
         for hit in results
     ]
 
-    logger.info("Retrieved %s chunks (user_id=%s, filtered_docs=%s)", len(chunks), user_id, bool(doc_ids))
+    logger.info("Retrieved %s chunks (user_id=%s)", len(chunks), user_id)
     return chunks
