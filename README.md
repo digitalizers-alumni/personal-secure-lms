@@ -65,7 +65,7 @@ LuminaSwiss is designed for deployment on local infrastructure and with Swiss ba
 
 ## Quick installation
 
-See README.md in server and client folders for more information
+See README.md in server and client folders for detailed information
 
 ### Server
 
@@ -82,4 +82,4 @@ npm install
 nom run dev
 ```
 
-**Testing Request**: Please test this version in either **English** or **French**.
+**Testing Request**: Please test the LLMs prompt and courses generation in either **English** or **French**.
